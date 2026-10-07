@@ -12,6 +12,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['id'] = $usuario['id'];
             $_SESSION['email'] = $usuario['email'];
             $_SESSION['tipo'] = $usuario['tipo'] ?? 'usuario';
+            // Inicia os 30 minutos de inatividade a partir da autenticação bem-sucedida.
+            $_SESSION['ultima_atividade'] = time();
             header('Location: ../index.php'); exit();
         }
         $erro = 'Usuário ou senha inválidos';
@@ -34,6 +36,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <main class="auth-page">
     <h1>Área do funcionário</h1>
     <p>Faça login para gerenciar os alunos da Impulso Cursos.</p>
+    <?php if (($_GET['expirou'] ?? '') === '1'): ?>
+        <p class="message-warning" role="status">Sua sessão expirou por inatividade. Faça login novamente.</p>
+    <?php endif; ?>
     <?php if (($_GET['cadastro'] ?? '') === 'sucesso'): ?>
         <p class="message-success" role="status">Cadastro realizado. Entre com seu e-mail e senha.</p>
     <?php endif; ?>
