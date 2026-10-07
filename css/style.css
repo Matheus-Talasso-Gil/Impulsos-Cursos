@@ -357,6 +357,63 @@ main a.report-link:hover { color: #fff; background: var(--primary-dark); }
 .student-details dd { margin: 3px 0 0; overflow-wrap: anywhere; font-weight: 650; }
 .lookup-home-link { display: inline-block; margin-top: 18px; }
 
+/* Acesso restrito às páginas administrativas. */
+main.access-denied {
+    display: grid;
+    place-items: center;
+    width: min(100% - 32px, 760px);
+    margin: 48px auto;
+}
+.access-denied-card {
+    width: 100%;
+    padding: clamp(28px, 6vw, 64px);
+    overflow: hidden;
+    text-align: center;
+    background: radial-gradient(ellipse at top, var(--primary-light), transparent 65%), var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    box-shadow: var(--shadow-md);
+}
+.access-denied-icon {
+    display: grid;
+    place-items: center;
+    width: 108px;
+    height: 108px;
+    margin: 0 auto 28px;
+    color: var(--primary);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 32px;
+    box-shadow: 0 8px 24px rgba(31, 95, 152, .1);
+}
+.access-denied-label { margin-bottom: 16px; color: var(--primary); font-size: 12px; font-weight: 750; letter-spacing: .12em; }
+.access-denied-card h1 { margin-bottom: 20px; font-size: clamp(26px, 4vw, 38px); line-height: 1.2; }
+.access-denied-description { max-width: 480px; margin: 0 auto 28px; color: var(--text-secondary); }
+.access-denied-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; }
+.access-denied-actions a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    min-height: 48px;
+    padding: 12px 22px;
+    border: 1px solid var(--primary);
+    border-radius: 10px;
+    font-weight: 650;
+    text-decoration: none;
+}
+.access-denied-actions .access-denied-primary { color: #fff; background: var(--primary); }
+.access-denied-actions .access-denied-primary:hover { color: #fff; background: var(--primary-dark); border-color: var(--primary-dark); }
+.access-denied-actions .access-denied-secondary { color: var(--primary); background: var(--surface); }
+.access-denied-actions .access-denied-secondary:hover { color: var(--primary-dark); background: var(--primary-light); }
+.access-denied-actions a:focus-visible { outline: 3px solid var(--primary); outline-offset: 4px; }
+.access-denied-help { margin: 32px 0 0; padding-top: 24px; color: var(--text-secondary); border-top: 1px solid var(--border); font-size: 13px; }
+@media (max-width: 480px) {
+    main.access-denied { margin: 24px auto; }
+    .access-denied-actions { flex-direction: column; }
+    .access-denied-actions a { width: 100%; }
+}
+
 /* footer */
 footer { margin-top: auto; padding: var(--space-5) 20px; color: var(--text-secondary); background: var(--surface); border-top: 1px solid var(--border); text-align: center; }
 footer h1 { margin: 0; color: var(--text-secondary); font-size: 13px; font-weight: 500; }
