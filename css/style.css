@@ -124,6 +124,15 @@ article p { max-width: 760px; color: var(--text-secondary); }
 .profile-course-list li { display: flex; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2); padding: var(--space-3) 0; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
 .profile-course-list span { color: var(--text-secondary); }
 
+/* Painel administrativo: reaproveita as cores e os espaçamentos do sistema. */
+.admin-dashboard > section { margin-bottom: var(--space-6); }
+.admin-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); margin: 0; }
+.admin-card { padding: var(--space-5); background: var(--surface); border: 1px solid var(--border); border-top: 4px solid var(--primary); border-radius: 8px; box-shadow: var(--shadow-sm); overflow-wrap: anywhere; }
+.admin-card dt { color: var(--text-secondary); }
+.admin-card dd { margin: var(--space-2) 0 0; color: var(--primary-dark); font-size: 32px; font-weight: 700; }
+.admin-action-links { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.admin-action-links a.report-link { margin-top: 0; }
+
 /* forms and controls */
 form:not(.edit-action) {
     width: 100%;
@@ -289,12 +298,14 @@ footer h1 { margin: 0; color: var(--text-secondary); font-size: 13px; font-weigh
 
 /* responsive layout */
 @media (max-width: 760px) {
+    .admin-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     main { margin: 32px auto; }
     .course-grid { grid-template-columns: 1fr; }
     nav { grid-template-columns: auto minmax(0, 1fr) auto; }
     nav .nav-links-admin { flex-wrap: wrap; white-space: normal; }
 }
 @media (max-width: 600px) {
+    .admin-summary-grid { grid-template-columns: 1fr; }
     header { padding: 12px; }
     nav { grid-template-columns: minmax(0, 1fr) auto; gap: 4px; }
     nav .nav-start { grid-column: 1; grid-row: 1; }
