@@ -75,33 +75,100 @@ Abrir o PHP diretamente como arquivo no navegador não executa o código. O serv
 
 ```text
 impulsos_cursos/
-├── index.php                    # Apresentação da empresa
 ├── app/
-│   ├── create.php               # Cadastro de aluno
-│   ├── admin.php                # Conferência e vínculo de conta
-│   ├── cursos.php               # Cursos e inscrições pela conta
-│   ├── select.php               # Relatório e acesso à edição
-│   ├── select_w_w.php           # Consulta pelo ID informado
-│   ├── update.php               # Carregamento e atualização
-│   └── delete.php               # Busca e confirmação de exclusão
-├── includes/
-│   ├── header.php               # Menu compartilhado
-│   ├── footer.php               # Rodapé compartilhado
-│   ├── session.php              # Inicialização da sessão
-│   └── functions.php            # Funções de acesso aos dados
-├── login/
-│   ├── login.php                # Autenticação
-│   ├── cadastrar.php            # Cadastro de usuário de acesso
-│   ├── verificar_user.php       # Proteção das páginas
-│   ├── verificar_admin.php      # Restrição administrativa
-│   ├── perfil.php               # Conta e aluno vinculado
-│   └── logout.php               # Encerramento da sessão
-├── database/
-│   └── connect_postgres.php     # Conexão PDO
+│   ├── admin.php                 # área administrativa
+│   ├── alunos_cursos.php         # consulta dos cursos dos alunos
+│   ├── create.php                # redirecionamento para cadastro/vínculo
+│   ├── curso.php                 # detalhes e inscrição em um curso
+│   ├── curso_create.php          # cadastro de cursos
+│   ├── curso_delete.php          # exclusão de cursos
+│   ├── curso_update.php          # edição de cursos
+│   ├── cursos.php                # catálogo de cursos
+│   ├── cursos_admin.php          # gestão administrativa de cursos
+│   ├── delete.php                # exclusão de alunos
+│   ├── meus_cursos.php           # cursos da conta autenticada
+│   ├── select.php                # relatório/listagem de alunos
+│   ├── select_w_w.php            # consulta individual
+│   ├── tabela.md                 # documentação relacionada às tabelas
+│   ├── update.php                # edição de alunos
+│   ├── usuarios.php              # consulta de usuários e seus vínculos
+│   └── vincular_conta.php        # vínculo entre conta e aluno
+│
 ├── css/
-│   └── style.css                # Estilos compartilhados
-├── README.md
-└── documentacao.md
+│   └── style.css                 # estilos compartilhados do sistema
+│
+├── database/
+│   ├── auto_destruicao/
+│   │   └── reset_database.pgsql  # recriação destrutiva do banco em desenvolvimento
+│   ├── adicionar_tipo_usuario.sql # adiciona nível de acesso aos usuários
+│   ├── adicionar_created_at_usuarios.sql # adiciona a data de criação das contas
+│   ├── ajustar_senha.sql         # ajustes relacionados às senhas
+│   ├── connect_postgres.php      # conexão com PostgreSQL
+│   ├── table.pgsql               # criação das tabelas
+│   ├── verificar_created_at.php  # teste isolado da data de criação das contas
+│   ├── vincular_alunos_usuarios.sql # migração do vínculo opcional
+│   └── verificar_user.php        # teste de cadastro e autenticação
+│
+├── includes/
+│   ├── curso_admin_form.php      # formulário compartilhado de gestão de cursos
+│   ├── data_conta.php            # formatação da data de criação da conta
+│   ├── footer.php                # rodapé compartilhado
+│   ├── functions.php             # funções reutilizadas pelo sistema
+│   ├── header.php                # cabeçalho e menu conforme o tipo de usuário
+│   ├── recuperacao_senha.php      # funções de recuperação de senha demonstrativa local
+│   └── session.php               # gerenciamento da sessão
+│
+├── login/
+│   ├── cadastrar.php             # cadastro público de usuário
+│   ├── login.php                 # autenticação
+│   ├── logout.php                # encerramento da sessão
+│   ├── perfil.php                # perfil do usuário
+│   ├── recuperar_senha.php       # solicitação de recuperação de senha
+│   ├── redefinir_senha.php       # definição de uma nova senha
+│   ├── verificar_admin.php       # proteção de páginas administrativas
+│   ├── verificar_cpf.php         # validação/verificação de CPF
+│   └── verificar_user.php        # proteção de páginas autenticadas
+│
+├── prototipos/
+│   ├── imagens/
+│   │   ├── tela_cadastrar_aluno.png
+│   │   ├── tela_cadastrar.png
+│   │   ├── tela_confirmar_exclusao.png
+│   │   ├── tela_excluir.png
+│   │   ├── tela_inicial.png
+│   │   ├── tela_login.png
+│   │   └── tela_resultado_da_consulta.png
+│   ├── prototipo_impulso_cursos.excalidraw
+│   ├── tela_cadastrar_aluno.excalidraw
+│   ├── tela_cadastrar.excalidraw
+│   ├── tela_confirmar_exclusao.excalidraw
+│   ├── tela_consultar.excalidraw
+│   ├── tela_excluir.excalidraw
+│   ├── tela_inicial.excalidraw
+│   ├── tela_login.excalidraw
+│   └── tela_resultado_da_consulta.excalidraw
+│
+├── trello/
+│   ├── primeiros7commits.png
+│   ├── commits8-15.png
+│   ├── commits16-21.png
+│   ├── commits22-28.png
+│   ├── commits29-35.png
+│   ├── commits36-42.png
+│   ├── commits43-49.png
+│   ├── commits50-56.png
+│   ├── commits57-63.png
+│   ├── commits64-70.png
+│   ├── commits71-77.png
+│   ├── commits78-84.png
+│   └── commits85-91.png
+│
+├── briefing.md
+├── diagrama.md
+├── dicionario.md
+├── documentacao.md
+├── index.php
+└── README.md
 ```
 
 A árvore destaca os arquivos explicados neste guia; arquivos auxiliares de SQL e anotações não estão representados.
