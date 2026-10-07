@@ -1,4 +1,7 @@
-<?php require_once __DIR__ . '/session.php'; ?>
+<?php
+// A política pública lê a sessão antes do HTML, sem alterar o fluxo das demais páginas.
+if (!($headerSessaoSomenteLeitura ?? false)) require_once __DIR__ . '/session.php';
+?>
 <header>
     <nav aria-label="Menu principal">
         <?php if (!isset($_SESSION['id'])): ?>

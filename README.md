@@ -14,6 +14,7 @@ Sistema web fictício de gestão de alunos, desenvolvido com PHP, PDO e PostgreS
 - Catálogo, detalhes, inscrição e consulta de Meus cursos
 - Dashboard próprio para usuários autenticados, com resumo da conta, aluno vinculado, totais e prévias de até três cursos, além de atalhos
 - Recuperação de senha demonstrativa local para contas comuns de teste
+- Política de Privacidade pública em `privacidade.php`, acessível pelo rodapé de todas as páginas
 
 ## Documentação do projeto
 
