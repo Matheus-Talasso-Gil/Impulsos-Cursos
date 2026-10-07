@@ -186,11 +186,11 @@ O ID original fica na sessão. ID, CPF e nascimento são exibidos sem edição; 
 4. Se a conta tem inscrições, uma segunda tela na própria página lista os cursos e pede “Excluir aluno mesmo com cursos”. A primeira confirmação não exclui.
 5. Após as confirmações necessárias, chama `apagar($conexao, $id)` e remove somente o aluno. A conta e suas inscrições continuam existindo; o perfil perde o vínculo com o cadastro excluído.
 
-Cancelar abre `delete.php` e limpa as confirmações pendentes. Se as inscrições ou o vínculo mudarem entre requisições, os dados devem ser conferidos novamente. Se o aluno não existir, mostra “Aluno não encontrado”. Após excluir, volta à busca. O campo de ID aceita de 1 a 255 no navegador.
+Cancelar abre `delete.php` e limpa as confirmações pendentes. Se as inscrições ou o vínculo mudarem entre requisições, os dados devem ser conferidos novamente. Se o aluno não existir, mostra “Aluno não encontrado”. Após excluir, volta à busca. O campo de ID aceita inteiros positivos até 2147483647, limite da coluna INTEGER do PostgreSQL.
 
 #### `select_w_w.php` — Consulta por ID ou CPF
 
-É a página aberta pelo menu Consultar. Permite buscar por ID entre 1 e 255 ou por CPF normalizado. Reutiliza `read_w_w()` para mostrar o cadastro e oferece um link ao relatório.
+É a página aberta pelo menu Consultar. Permite buscar por ID inteiro positivo até 2147483647 ou por CPF com ou sem pontuação, inclusive nos registros antigos. Reutiliza `read_w_w()` para mostrar o cadastro e oferece um link ao relatório.
 
 #### `vincular_conta.php` — Vínculo de conta
 
@@ -416,7 +416,7 @@ Este roteiro é uma orientação de teste, não um registro de testes executados
 | O endereço muda, mas a página não abre corretamente | Confira se o servidor foi iniciado na pasta que contém `impulsos_cursos`. Os links começam com `/impulsos_cursos/`. |
 | Depois de atualizar, continuo com os campos preenchidos | Esse é o fluxo atual. Confira a mensagem de sucesso e volte ao relatório para ver o registro salvo. |
 | O formulário não envia | Confira campos obrigatórios, formato de e-mail e limites numéricos indicados pelo navegador. |
-| Não consigo excluir um ID maior que 255 | O formulário de exclusão atual tem `max="255"`. Isso é um limite do formulário, não uma conclusão sobre a capacidade do banco. |
+| Não consigo localizar um aluno por ID | Informe um inteiro positivo até 2147483647 e confira se o cadastro ainda existe. |
 | O visual antigo continua aparecendo | Atualize com `Ctrl + F5` e confira se o CSS está sendo carregado. |
 | Aparece erro de conexão com o banco | Verifique se o servidor PostgreSQL está acessível e se a conexão está configurada corretamente. |
 | Perfil não consegue consultar cadastro de aluno | Confira a conexão e se `vincular_alunos_usuarios.sql` foi executada. O detalhe técnico fica no log. |
@@ -427,9 +427,10 @@ Este roteiro é uma orientação de teste, não um registro de testes executados
 ## 10. Limitações da versão atual
 
 - Novas senhas são gravadas com `password_hash()` e verificadas com `password_verify()`. Antes de usar, execute `database/ajustar_senha.sql` para ampliar o campo para `VARCHAR(255)`. Senhas antigas em texto precisam ser convertidas ou redefinidas; o login não aceita texto puro armazenado no banco.
-- Parte da validação está apenas no navegador. Os limites de ID também diferem entre as páginas: a exclusão limita o formulário a 255.
+- A edição de aluno valida nome, turma, e-mail e situação no servidor. Os formulários de busca, edição e exclusão aceitam IDs positivos até 2147483647.
+- Para verificar as correções de edição, CSRF, abas diferentes, CPF com pontuação e entradas inválidas, execute `php impulsos_cursos/database/verificar_alunos.php` a partir da pasta pai do projeto. O teste usa tabelas temporárias e rollback, preservando os cadastros reais.
 - O cadastro usa uma lista de turmas, mas a edição ainda permite texto livre para turma.
-- Vínculo, exclusão de aluno, inscrição em cursos, gestão de cursos e recuperação de senha possuem token CSRF. A cobertura não inclui todos os formulários do sistema.
+- Cadastro, edição e exclusão de aluno, vínculo, inscrição em cursos, gestão de cursos e recuperação de senha possuem token CSRF. A edição também confere se o aluno do formulário continua sendo o selecionado na sessão, impedindo salvar em outro aluno ao alternar abas. A cobertura não inclui todos os formulários do sistema.
 - A atualização não confere as linhas afetadas antes de mostrar sucesso; exclusão e vínculo conferem.
 - Atualizar a página após um POST pode solicitar o reenvio do formulário, pois não há redirecionamento após todas as operações.
 

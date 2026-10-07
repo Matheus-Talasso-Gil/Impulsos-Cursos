@@ -22,47 +22,53 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') unset($_SESSION['exclusao_pendente'],
 $cursos = [];
 $confirmacaoCursos = false;
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['id'])) {
-    $id = filter_var($_POST['id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 0;
-    $sql = 'SELECT * FROM alunos WHERE id = :id';
-    $stmt = $conexao->prepare($sql);
-    $stmt->bindParam(':id', $id);
-    $stmt->execute();
-    $aluno = $stmt->fetch(PDO::FETCH_ASSOC);
-    if (!$aluno) {
-        echo '<p class="message-error" role="alert">Aluno não encontrado.</p>';
-    } else {
-        $stmt = $conexao->prepare('SELECT c.id, c.nome FROM inscricoes i JOIN cursos c ON c.id = i.curso_id WHERE i.usuario_id = :usuario_id ORDER BY c.id');
-        $stmt->execute([':usuario_id' => $aluno['usuario_id']]);
-        $cursos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $dados = ['id' => $id, 'usuario_id' => $aluno['usuario_id'], 'cursos' => array_column($cursos, 'id')];
-        if (isset($_POST['confirmar']) || isset($_POST['confirmar_cursos'])) {
-            if (!is_string($_POST['token'] ?? null) || !hash_equals($_SESSION['exclusao_token'], $_POST['token'])) { // rejeita tokens ausentes ou diferentes do token da sessao para impedir solicitacoes forjadas
-                echo '<p class="message-error" role="alert">Solicitação inválida. Recarregue a página.</p>';
-            } elseif (($_SESSION['exclusao_pendente'] ?? null) !== $dados) {
-                echo '<p class="message-warning" role="alert">Confira os dados atualizados antes de confirmar.</p>';
-            } elseif ($cursos && (!isset($_POST['confirmar_cursos']) || ($_SESSION['exclusao_cursos'] ?? null) !== $dados)) {
-                $confirmacaoCursos = true;
-                $_SESSION['exclusao_cursos'] = $dados; // guarda os dados conferidos na sessao para usar na proxima etapa
-            } else {
-                try {
-                    apagar($conexao, $id);
-                    $aluno = false;
-                    unset($_SESSION['exclusao_pendente'], $_SESSION['exclusao_cursos']);
-                } catch (PDOException $e) {
-                    error_log($e->getMessage());
-                    echo '<p class="message-error" role="alert">Não foi possível excluir. Confira se a migration atualizada foi executada.</p>';
+    try {
+        $id = filter_var($_POST['id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 2147483647]]) ?: 0;
+        $sql = 'SELECT * FROM alunos WHERE id = :id';
+        $stmt = $conexao->prepare($sql);
+        $stmt->bindParam(':id', $id);
+        $stmt->execute();
+        $aluno = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$aluno) {
+            echo '<p class="message-error" role="alert">Aluno não encontrado.</p>';
+        } else {
+            $stmt = $conexao->prepare('SELECT c.id, c.nome FROM inscricoes i JOIN cursos c ON c.id = i.curso_id WHERE i.usuario_id = :usuario_id ORDER BY c.id');
+            $stmt->execute([':usuario_id' => $aluno['usuario_id']]);
+            $cursos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $dados = ['id' => $id, 'usuario_id' => $aluno['usuario_id'], 'cursos' => array_column($cursos, 'id')];
+            if (isset($_POST['confirmar']) || isset($_POST['confirmar_cursos'])) {
+                if (!is_string($_POST['token'] ?? null) || !hash_equals($_SESSION['exclusao_token'], $_POST['token'])) { // rejeita tokens ausentes ou diferentes do token da sessao para impedir solicitacoes forjadas
+                    echo '<p class="message-error" role="alert">Solicitação inválida. Recarregue a página.</p>';
+                } elseif (($_SESSION['exclusao_pendente'] ?? null) !== $dados) {
+                    echo '<p class="message-warning" role="alert">Confira os dados atualizados antes de confirmar.</p>';
+                } elseif ($cursos && (!isset($_POST['confirmar_cursos']) || ($_SESSION['exclusao_cursos'] ?? null) !== $dados)) {
+                    $confirmacaoCursos = true;
+                    $_SESSION['exclusao_cursos'] = $dados; // guarda os dados conferidos na sessao para usar na proxima etapa
+                } else {
+                    try {
+                        apagar($conexao, $id);
+                        $aluno = false;
+                        unset($_SESSION['exclusao_pendente'], $_SESSION['exclusao_cursos']);
+                    } catch (PDOException $e) {
+                        error_log($e->getMessage());
+                        echo '<p class="message-error" role="alert">Não foi possível excluir. Confira se a migration atualizada foi executada.</p>';
+                    }
                 }
             }
+            if (!isset($_POST['confirmar']) && !isset($_POST['confirmar_cursos'])) unset($_SESSION['exclusao_cursos']);
+            if ($aluno) $_SESSION['exclusao_pendente'] = $dados;
         }
-        if (!isset($_POST['confirmar']) && !isset($_POST['confirmar_cursos'])) unset($_SESSION['exclusao_cursos']);
-        if ($aluno) $_SESSION['exclusao_pendente'] = $dados;
+    } catch (PDOException $e) {
+        error_log($e->getMessage());
+        $aluno = false;
+        echo '<p class="message-error" role="alert">Não foi possível consultar o aluno. Tente novamente.</p>';
     }
 }
     ?>
     <?php if (!$aluno): ?>
     <form action="" method="post">
         <label for="id">ID do aluno:</label>
-        <input type="number" name="id" id="id" min="1" max="255" required>
+        <input type="number" name="id" id="id" min="1" max="2147483647" required>
         <input type="submit" value="Continuar para exclusão">
     </form>
     <?php else: ?>

@@ -6,7 +6,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $usuario = consultar_user($conexao, $_POST['email'] ?? '');
         // Confere a senha digitada contra o hash armazenado, somente se a conta foi encontrada.
-        if ($usuario && password_verify($_POST['senha'] ?? '', $usuario['senha'])) {
+        $senha = $_POST['senha'] ?? '';
+        if ($usuario && is_string($senha) && password_verify($senha, $usuario['senha'])) {
             // Troca o ID da sessão após autenticar, protegendo contra fixação de sessão.
             session_regenerate_id(true);
             $_SESSION['id'] = $usuario['id'];

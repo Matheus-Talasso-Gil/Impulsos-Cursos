@@ -59,7 +59,7 @@ function redefinirSenhaUsuario($conexao, $token, $csrf, $senha, $confirmacao)
     validarCsrfRecuperacao($csrf);
     $id = validarRecuperacaoSenha($conexao, $token);
     // Mantém espaços da senha. PASSWORD_DEFAULT usa bcrypt atualmente, cujo limite é 72 bytes.
-    if (!is_string($senha) || preg_match('/^.{8,}$/us', $senha) !== 1 || strlen($senha) > 72) {
+    if (!is_string($senha) || preg_match('/^.{8,}$/us', $senha) !== 1 || strlen($senha) > 72 || str_contains($senha, "\0")) {
         throw new InvalidArgumentException('Use uma senha de pelo menos 8 caracteres e no máximo 72 bytes.');
     }
     if (!is_string($confirmacao) || $senha !== $confirmacao) {

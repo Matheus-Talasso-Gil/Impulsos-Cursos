@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../login/verificar_admin.php';
 require_once __DIR__ . '/../includes/functions.php';
+$_SESSION['edicao_token'] ??= bin2hex(random_bytes(32));
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -20,29 +21,54 @@ require_once __DIR__ . '/../includes/functions.php';
 // Nessa segunda etapa, o ID e os dados originais são recuperados da sessão no servidor.
 $aluno = false;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['id']) || isset($_POST['nome']))) {
-    $id = isset($_POST['nome']) ? (int) ($_SESSION['aluno_edicao_id'] ?? 0) : (int) ($_POST['id'] ?? 0);
-    $stmt = $conexao->prepare('SELECT * FROM alunos WHERE id = :id');
-    $stmt->execute([':id' => $id]);
-    $aluno = $stmt->fetch(PDO::FETCH_ASSOC);
-    if ($aluno && !isset($_POST['nome'])) {
-        $_SESSION['aluno_edicao_id'] = $aluno['id'];
-        $_SESSION['aluno_edicao_cpf'] = $aluno['cpf'];
-        $_SESSION['aluno_edicao_nasc'] = $aluno['nasc'];
-    }
-    if ($aluno && isset($_POST['nome'])) {
-        $cpf = $_SESSION['aluno_edicao_cpf'] ?? '';
-        $nasc = $_SESSION['aluno_edicao_nasc'] ?? '';
-
-        if ($cpf === '' || $nasc === '') { // impede salvar quando a identidade original do aluno nao foi recuperada
-            echo '<p class="message-error">Não foi possível recuperar os dados originais do aluno.</p>';
-        } else {
-            Atualizar($conexao, $id, $_POST['nome'], $_POST['turma'], $nasc, $_POST['ativo'], $_POST['email'], $cpf);
-            // Reconsulta para preencher o formulário com os valores já atualizados no banco.
-            $stmt->execute([':id' => $id]);
-            $aluno = $stmt->fetch(PDO::FETCH_ASSOC);
+    try {
+        if (isset($_POST['nome'])) {
+            if (!is_string($_POST['token'] ?? null) || !hash_equals($_SESSION['edicao_token'], $_POST['token'])) {
+                throw new InvalidArgumentException('Solicitação inválida. Recarregue a página e busque o aluno novamente.');
+            }
+            $idFormulario = filter_var($_POST['aluno_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 2147483647]]);
+            if ($idFormulario === false || $idFormulario !== (int) ($_SESSION['aluno_edicao_id'] ?? 0)) {
+                throw new InvalidArgumentException('O aluno em edição mudou em outra aba. Busque novamente antes de salvar.');
+            }
         }
+        $id = isset($_POST['nome']) ? (int) $_SESSION['aluno_edicao_id'] : (filter_var($_POST['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 2147483647]]) ?: 0);
+        $stmt = $conexao->prepare('SELECT * FROM alunos WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+        $aluno = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($aluno && !isset($_POST['nome'])) {
+            $_SESSION['aluno_edicao_id'] = $aluno['id'];
+            $_SESSION['aluno_edicao_cpf'] = $aluno['cpf'];
+            $_SESSION['aluno_edicao_nasc'] = $aluno['nasc'];
+        }
+        if ($aluno && isset($_POST['nome'])) {
+            $cpf = $_SESSION['aluno_edicao_cpf'] ?? '';
+            $nasc = $_SESSION['aluno_edicao_nasc'] ?? '';
+
+            if ($cpf === '' || $nasc === '') { // impede salvar quando a identidade original do aluno nao foi recuperada
+                echo '<p class="message-error">Não foi possível recuperar os dados originais do aluno.</p>';
+            } else {
+                $nome = is_string($_POST['nome'] ?? null) ? trim($_POST['nome']) : '';
+                $turma = is_string($_POST['turma'] ?? null) ? trim($_POST['turma']) : '';
+                $email = is_string($_POST['email'] ?? null) ? trim($_POST['email']) : '';
+                $ativo = $_POST['ativo'] ?? null;
+                if (preg_match('/^.{1,255}$/us', $nome) !== 1 || preg_match('/^.{1,255}$/us', $turma) !== 1
+                    || strlen($email) > 255 || !filter_var($email, FILTER_VALIDATE_EMAIL)
+                    || !in_array($ativo, ['true', 'false'], true)) {
+                    throw new InvalidArgumentException('Informe nome e turma com até 255 caracteres, um e-mail válido e a situação do aluno.');
+                }
+                Atualizar($conexao, $id, $nome, $turma, $nasc, $ativo, $email, $cpf);
+                // Reconsulta para preencher o formulário com os valores já atualizados no banco.
+                $stmt->execute([':id' => $id]);
+                $aluno = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+        }
+        if (!$aluno) echo '<p class="message-error">Aluno não encontrado.</p>';
+    } catch (InvalidArgumentException $e) {
+        echo '<p class="message-error" role="alert">' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') . '</p>';
+    } catch (PDOException $e) {
+        error_log($e->getMessage());
+        echo '<p class="message-error" role="alert">Não foi possível carregar os dados do aluno. Tente novamente.</p>';
     }
-    if (!$aluno) echo '<p class="message-error">Aluno não encontrado.</p>';
 } else {
     echo '<p class="message-warning">Digite o ID do aluno para carregar os dados ou escolha Editar no relatório.</p>';
 }
@@ -50,13 +76,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['id']) || isset($_POS
 <?php if (!$aluno): ?>
 <form method="post">
     <label for="id">ID do aluno:</label>
-    <input type="number" name="id" id="id" min="1" max="255" required>
+    <input type="number" name="id" id="id" min="1" max="2147483647" required>
     <input type="submit" value="Buscar aluno">
 </form>
 <?php endif; ?>
 <?php if ($aluno): ?>
 <form method="post">
 
+    <input type="hidden" name="token" value="<?= htmlspecialchars($_SESSION['edicao_token'], ENT_QUOTES, 'UTF-8') ?>">
+    <input type="hidden" name="aluno_id" value="<?= (int) $aluno['id'] ?>">
     <p>ID: <?= htmlspecialchars((string) $aluno['id'], ENT_QUOTES, 'UTF-8') ?></p>
 
     <label for="nome">Nome:</label>

@@ -29,7 +29,8 @@ function cadastrar($conexao, $nome, $turma, $nasc, $ativo, $email, $cpf)
         $stmt->execute();
         echo "Aluno inserido com sucesso!";
     } catch (PDOException $e) {
-        echo "Erro: " . $e->getMessage();
+        error_log($e->getMessage());
+        echo '<p class="message-error" role="alert">Não foi possível salvar o aluno. Tente novamente.</p>';
     }
 }
 function listarAlunos($conexao, $turma = '', $situacao = 'todas')
@@ -96,7 +97,8 @@ function Atualizar($conexao, $id, $nome, $turma, $nasc, $ativo, $email, $cpf) //
         $stmt->execute();
         echo '<p class="message-success" role="status">ALUNO ATUALIZADO COM SUCESSO! VOLTE AO RELATÓRIO PARA CONFERIR.</p>';
     } catch (PDOException $e) {
-        echo "Erro: " . $e->getMessage();
+        error_log($e->getMessage());
+        echo '<p class="message-error" role="alert">Não foi possível atualizar o aluno. Tente novamente.</p>';
     }
 }
 function read_w_w($conexao, $id)
@@ -121,7 +123,8 @@ function read_w_w($conexao, $id)
             echo '<p class="lookup-empty" role="status">Nenhum registro encontrado.</p>';
         }
     } catch (PDOException $e) {
-        echo "Erro: " . $e->getMessage();
+        error_log($e->getMessage());
+        echo '<p class="message-error" role="alert">Não foi possível consultar o aluno. Tente novamente.</p>';
     }
     echo '<a class="lookup-home-link" href="../index.php">Voltar ao início</a>';
 }
@@ -159,9 +162,15 @@ function cadastrar_aluno_usuario($conexao, array $dados)
 }
 function cadastrar_user($conexao, $email, $senha) // valida o email e cria uma conta comum com senha em hash
 {
+    if (!is_string($email) || !is_string($senha)) {
+        throw new InvalidArgumentException('Informe um e-mail válido e uma senha.');
+    }
     $email = trim($email); // remove espacos ao redor do email informado sem alterar a senha
     if (!filter_var($email, FILTER_VALIDATE_EMAIL) || $senha === '') {
         throw new InvalidArgumentException('Informe um e-mail válido e uma senha.');
+    }
+    if (strlen($email) > 255 || strlen($senha) > 72 || str_contains($senha, "\0")) {
+        throw new InvalidArgumentException('Use um e-mail com até 255 caracteres e uma senha com até 72 bytes, sem caracteres nulos.');
     }
         if (consultar_user($conexao, $email)) {
         throw new InvalidArgumentException('Este e-mail já está cadastrado. Entre com a senha do cadastro mais recente.');
@@ -176,6 +185,7 @@ function cadastrar_user($conexao, $email, $senha) // valida o email e cria uma c
 // Se houver e-mails duplicados, ORDER BY id DESC LIMIT 1 escolhe a conta de maior ID.
 function consultar_user($conexao, $email)
 {
+    if (!is_string($email)) return false;
     $email = trim($email);
     $sql = "SELECT id, email, senha, tipo FROM usuarios WHERE email = :email ORDER BY id DESC LIMIT 1";
     $stmt = $conexao->prepare($sql);
