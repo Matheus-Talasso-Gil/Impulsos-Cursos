@@ -12,6 +12,7 @@ Sistema web fictício de gestão de alunos, desenvolvido com PHP, PDO e PostgreS
 - Menus e páginas controlados pelo papel da conta
 - Gestão administrativa de cursos e consulta de usuários e vínculos
 - Catálogo, detalhes, inscrição e consulta de Meus cursos
+- Dashboard próprio para usuários autenticados, com resumo da conta, aluno vinculado, totais e prévias de até três cursos, além de atalhos
 - Recuperação de senha demonstrativa local para contas comuns de teste
 
 ## Documentação do projeto
@@ -32,6 +33,12 @@ A recuperação de senha funciona somente em conexões locais (`127.0.0.1` ou `:
 | Administrador | Gestão de alunos, relatório, cursos, perfil e sair |
 
 O cadastro público sempre cria contas do tipo `usuario`. A conta admin é promovida diretamente no banco e uma constraint limita esse papel ao e-mail autorizado. Após mudar o papel no banco, saia e entre novamente para atualizar a sessão. O perfil exibe os dados do aluno vinculado à conta ou informa que ainda não existe vínculo.
+
+## Dashboard do usuário
+
+O login de uma conta `usuario` abre `app/dashboard.php`; o link Início e o acesso ao index autenticado também levam ao dashboard. Administradores entram em `app/admin.php` e são redirecionados para esse painel se tentarem abrir o dashboard do usuário. Visitantes continuam vendo o index público.
+
+O dashboard usa apenas o ID da sessão, exibe `usuarios.created_at` e aceita contas sem aluno vinculado ou sem inscrições. Para conferir, entre com uma conta comum com e sem inscrições/vínculo, confira totais e data, teste os atalhos e tente adicionar `?usuario_id=outro_id` (os dados devem continuar sendo os seus). Sem login, o dashboard deve levar ao login; com admin, ao painel. Confira também o catálogo vazio e o layout em desktop, tablet e celular.
 
 ## Requisitos
 

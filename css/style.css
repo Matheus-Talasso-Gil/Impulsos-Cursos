@@ -194,6 +194,29 @@ form.danger-confirmation { border-color: #f0c5ca; }
 .admin-action-links { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 .admin-action-links a.report-link { margin-top: 0; }
 
+/* Dashboard da conta comum, com as mesmas variáveis do sistema. */
+.dashboard-greeting { color: var(--primary-dark); font-size: 24px; font-weight: 700; }
+.dashboard-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5); }
+.dashboard-card { min-width: 0; padding: var(--space-5); background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-sm); overflow-wrap: anywhere; }
+.dashboard-card h2 { font-size: 21px; }
+.dashboard-details { margin: 0 0 var(--space-4); }
+.dashboard-details > div { padding: var(--space-2) 0; border-bottom: 1px solid var(--border); }
+.dashboard-details dt { color: var(--text-secondary); font-size: 14px; }
+.dashboard-details dd { margin: 0; }
+.dashboard-total { color: var(--text-secondary); font-weight: 650; }
+.dashboard-course-list { margin: 0 0 var(--space-4); padding: 0; list-style: none; }
+.dashboard-course-list li { padding: var(--space-3) 0; border-bottom: 1px solid var(--border); }
+.dashboard-enrolled { display: inline-block; margin-left: var(--space-2); padding: 2px 8px; color: var(--text); background: var(--primary-light); border-radius: 6px; font-size: 13px; }
+.dashboard-shortcuts { margin-top: var(--space-6); }
+@media (max-width: 960px) {
+    .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dashboard-card:first-child { grid-column: 1 / -1; }
+}
+@media (max-width: 600px) {
+    .dashboard-grid { grid-template-columns: 1fr; gap: var(--space-4); }
+    .dashboard-card { padding: var(--space-4); }
+}
+
 /* forms and controls */
 form:not(.edit-action) {
     width: 100%;

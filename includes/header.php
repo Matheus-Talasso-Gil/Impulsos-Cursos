@@ -8,7 +8,7 @@
             </div>
         <?php else: ?>
             <div class="nav-start">
-                <a href="/impulsos_cursos/index.php">Início</a>
+                <a href="<?= ($_SESSION['tipo'] ?? 'usuario') === 'admin' ? '/impulsos_cursos/index.php' : '/impulsos_cursos/app/dashboard.php' ?>">Início</a>
             </div>
             <?php if (($_SESSION['tipo'] ?? 'usuario') === 'admin'): ?>
                 <div class="nav-links nav-links-admin">

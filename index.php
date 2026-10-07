@@ -1,4 +1,10 @@
-<?php require_once __DIR__ . '/includes/session.php'; ?>
+<?php
+require_once __DIR__ . '/includes/session.php';
+if (isset($_SESSION['id']) && ($_SESSION['tipo'] ?? 'usuario') === 'usuario') {
+    header('Location: /impulsos_cursos/app/dashboard.php');
+    exit();
+}
+?>
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>

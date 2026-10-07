@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['tipo'] = $usuario['tipo'] ?? 'usuario';
             // Inicia os 30 minutos de inatividade a partir da autenticação bem-sucedida.
             $_SESSION['ultima_atividade'] = time();
-            header('Location: ../index.php'); exit();
+            header('Location: ' . ($_SESSION['tipo'] === 'admin' ? '../app/admin.php' : '../app/dashboard.php')); exit();
         }
         $erro = 'Usuário ou senha inválidos';
     } catch (PDOException $e) {
