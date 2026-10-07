@@ -52,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="email" name="email" id="email" maxlength="255" autocomplete="username" value="<?= htmlspecialchars($dados['email'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
             <label for="senha">Senha: </label>
             <input type="password" name="senha" id="senha" autocomplete="new-password" required>
+            <p class="auth-legal-links">Ao criar sua conta, recomendamos a leitura da <a href="/impulsos_cursos/privacidade.php">Política de Privacidade</a> e dos <a href="/impulsos_cursos/termos.php">Termos de Uso</a>.</p>
             <input type="submit" value="Cadastrar">
             <input type="reset" value="Limpar">
         </form>

@@ -297,6 +297,7 @@ form.edit-action input[type="submit"] { min-height: 40px; margin: 0; padding: 7p
 .auth-page > form { margin: var(--space-5) auto; padding: var(--space-6); }
 .auth-page > p:last-child { margin-top: var(--space-4); }
 .auth-page > p:last-child a { font-weight: 600; }
+.auth-legal-links { margin: var(--space-4) 0 var(--space-2); color: var(--text-secondary); font-size: 14px; overflow-wrap: anywhere; }
 .delete-page > h2 { color: var(--danger-dark); }
 .delete-page .danger-confirmation { border-color: #f0c5ca; border-top: 4px solid var(--danger); }
 .delete-page .cancel-link { display: inline-flex; align-items: center; min-height: 44px; margin: 8px 0 0 4px; padding: 8px 14px; color: var(--text); background: #edf1f5; border-radius: 6px; text-decoration: none; }
