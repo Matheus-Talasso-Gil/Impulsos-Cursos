@@ -2,6 +2,15 @@
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/verificar_user.php';
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/data_conta.php';
+$dataCriacaoConta = null;
+try {
+    $stmt = $conexao->prepare('SELECT created_at FROM usuarios WHERE id = :id');
+    $stmt->execute([':id' => (int) $_SESSION['id']]);
+    $dataCriacaoConta = $stmt->fetchColumn();
+} catch (PDOException $e) {
+    error_log($e->getMessage());
+}
 $aluno = false;
 $erroPerfil = '';
 // Busca o cadastro pelo ID da conta autenticada, sem aceitar o ID de outro usuário pelo formulário ou pela URL.
@@ -52,6 +61,7 @@ if (!$ehAdmin) {
                 <span class="profile-account-type"><?= htmlspecialchars($tipoConta, ENT_QUOTES, 'UTF-8') ?></span>
                 <h2 id="profile-account-title"><?= htmlspecialchars((string) ($aluno['nome'] ?? 'Sua conta'), ENT_QUOTES, 'UTF-8') ?></h2>
                 <p><?= htmlspecialchars((string) ($_SESSION['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
+                <p>Conta criada em: <?= htmlspecialchars(formatarDataCriacaoConta($dataCriacaoConta), ENT_QUOTES, 'UTF-8') ?></p>
             </div>
         </section>
         <div class="profile-layout<?= $ehAdmin ? ' profile-layout-admin' : '' ?>">

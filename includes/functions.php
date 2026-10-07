@@ -4,15 +4,16 @@ function validar_cpf($cpf) // valida o tamanho e os dois digitos verificadores d
 {
     // \D encontra tudo que não é dígito, removendo pontos, traço e espaços antes da validação.
     $cpf = preg_replace('/\D/', '', (string) $cpf);
-    if (strlen($cpf) !== 11 || preg_match('/^(\d)\1{10}$/', $cpf)) return false; // exige 11 digitos e rejeita numeros repetidos
+    if (strlen($cpf) !== 11 || preg_match('/^(\d)\1{10}$/', $cpf)) return false; // exige 11 digitos e rejeita que todos os numeros sejam repetidos
     $soma = 0;
-    for ($i = 0; $i < 9; $i++) $soma += (int) $cpf[$i] * (10 - $i); // calcula a soma usada no primeiro digito verificador
+    for ($i = 0; $i < 9; $i++) {
+    $soma += (int) $cpf[$i] * (10 - $i);} // calcula a soma usada no primeiro digito verificador, com esse codigo ele vai fazer os primeiros 9 numeros, vezes 10, depois 9, depois 8 e assim por diante
     $resto = $soma % 11;
     // Pela regra do CPF, restos 0 e 1 geram dígito 0; nos demais casos, usa-se 11 menos o resto.
-    $primeiro = $resto < 2 ? 0 : 11 - $resto;
+    $primeiro = $resto < 2 ? 0 : 11 - $resto; 
     if ((int) $cpf[9] !== $primeiro) return false;
     $soma = 0;
-    for ($i = 0; $i < 10; $i++) $soma += (int) $cpf[$i] * (11 - $i); // calcula a soma usada no segundo digito
+    for ($i = 0; $i < 10; $i++) $soma += (int) $cpf[$i] * (11 - $i); // calcula a soma usada no segundo digito, depois so repete o que fez na verificacao do primeiro digito
     $resto = $soma % 11;
     $segundo = $resto < 2 ? 0 : 11 - $resto;
     return (int) $cpf[10] === $segundo;

@@ -203,11 +203,20 @@ Atualização do quadro Trello com o acompanhamento das tarefas concluídas, em 
 ![Trello - commits 78 a 84](trello/commits78-84.png)
 
 </details>
+
+<details>
+<summary><strong>Commits 85–91</strong></summary>
+
+Atualização do quadro Trello com 51 tarefas concluídas, duas em andamento e dez a fazer. Os níveis de acesso completos continuam em andamento, enquanto favoritos de cursos, dashboard do usuário, tema escuro e logs de navegação e ações permanecem planejados.
+
+![Trello - commits 85 a 91](trello/commits85-91.png)
+
+</details>
 <!-- markdownlint-enable MD033 -->
 
 ## Estrutura principal
 
-A estrutura abaixo apresenta os arquivos atuais do projeto, incluindo a recuperação de senha, a gestão de cursos, os protótipos e as imagens do Trello até os commits 78–84.
+A estrutura abaixo apresenta os arquivos atuais do projeto, incluindo a recuperação de senha, a gestão de cursos, os protótipos e as imagens do Trello até os commits 85–91.
 
 ```text
 impulsos_cursos/
@@ -237,14 +246,17 @@ impulsos_cursos/
 │   ├── auto_destruicao/
 │   │   └── reset_database.pgsql  # recriação destrutiva do banco em desenvolvimento
 │   ├── adicionar_tipo_usuario.sql # adiciona nível de acesso aos usuários
+│   ├── adicionar_created_at_usuarios.sql # adiciona a data de criação das contas
 │   ├── ajustar_senha.sql         # ajustes relacionados às senhas
 │   ├── connect_postgres.php      # conexão com PostgreSQL
 │   ├── table.pgsql               # criação das tabelas
+│   ├── verificar_created_at.php  # teste isolado da data de criação das contas
 │   ├── vincular_alunos_usuarios.sql # migração do vínculo opcional
 │   └── verificar_user.php        # teste de cadastro e autenticação
 │
 ├── includes/
 │   ├── curso_admin_form.php      # formulário compartilhado de gestão de cursos
+│   ├── data_conta.php            # formatação da data de criação da conta
 │   ├── footer.php                # rodapé compartilhado
 │   ├── functions.php             # funções reutilizadas pelo sistema
 │   ├── header.php                # cabeçalho e menu conforme o tipo de usuário
@@ -293,7 +305,8 @@ impulsos_cursos/
 │   ├── commits57-63.png
 │   ├── commits64-70.png
 │   ├── commits71-77.png
-│   └── commits78-84.png
+│   ├── commits78-84.png
+│   └── commits85-91.png
 │
 ├── briefing.md
 ├── diagrama.md
@@ -346,6 +359,28 @@ WHERE lower(email) = lower('EMAIL_AUTORIZADO');
 A constraint `usuarios_admin_email_check` limita `admin` ao e-mail autorizado nos scripts de schema. Se trocar a conta autorizada, atualize essa constraint na migração e nos scripts de criação/reset.
 
 > **Atenção:** `database/auto_destruicao/reset_database.pgsql` apaga e recria `alunos` e `usuarios`, perdendo os registros. Use somente em desenvolvimento e após confirmar o banco e fazer backup.
+
+## Data de criação das contas
+
+Novas instalações incluem `usuarios.created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP`. Para bancos existentes, execute antes de usar as telas atualizadas:
+
+```powershell
+psql -h HOST -U USUARIO -d BANCO -v ON_ERROR_STOP=1 -f impulsos_cursos/database/adicionar_created_at_usuarios.sql
+```
+
+A migration não recria tabelas nem altera IDs, senhas ou tipos. Pode ser executada novamente: `IF NOT EXISTS` preserva a coluna já criada. Contas antigas recebem o horário da primeira execução, pois sua data real de criação não foi registrada.
+
+Nos novos cadastros, o INSERT omite `created_at` e o PostgreSQL usa automaticamente `CURRENT_TIMESTAMP` (início da transação). A informação aparece em **Meu perfil** e **Usuários cadastrados**, somente para leitura; campos enviados por GET ou POST não são usados. Login, logout e redefinição de senha não alteram esse valor.
+
+O projeto não configura explicitamente o fuso da conexão nem o do PHP. No teste deste ambiente, PostgreSQL 18.6 informou `America/Sao_Paulo` e PHP informou `UTC`. `TIMESTAMP` não guarda fuso: o valor usa o horário da sessão PostgreSQL e é exibido sem conversão. Confira `SHOW timezone;` no banco e `date_default_timezone_get()` no PHP antes de comparar horários em outra instalação; configurações diferentes podem produzir horários locais diferentes. Esta tarefa não muda configurações globais. Datas ausentes ou inválidas aparecem como **Não informada**.
+
+Teste automatizado com tabelas temporárias, sem modificar contas reais:
+
+```powershell
+php impulsos_cursos/database/verificar_created_at.php
+```
+
+Para validar as telas, aplique a migration, cadastre uma conta pelo **Cadastre-se** e confira a data no perfil e na listagem administrativa. Anote `created_at`, faça logout/login e redefina a senha pela demonstração local; o valor deve permanecer igual. Envie também um campo extra `created_at` no POST de cadastro: o horário deve continuar sendo preenchido pelo banco. Reexecute a migration e confirme que os valores existentes foram preservados.
 
 ## Executar o sistema
 

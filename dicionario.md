@@ -32,6 +32,7 @@ Guarda as contas usadas para entrar no sistema.
 | email | VARCHAR(255) | UNIQUE | Não | E-mail usado no login. |
 | senha | VARCHAR(255) | — | Não | Hash gerado por `password_hash()`. |
 | tipo | VARCHAR(20) | CHECK | Não | `usuario` ou `admin` com padrão `usuario`. |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Não | Data e hora de criação da conta, preenchida pelo banco e somente leitura no sistema. Contas antigas recebem o horário da migration. |
 
 - Os campos aparecem nas consultas de [functions.php](includes/functions.php).
 - A tabela `usuarios` é criada pelo script [table.pgsql](database/table.pgsql).
