@@ -200,6 +200,7 @@ mini_sistema/
 │   ├── ajustar_senha.sql         # ajustes relacionados às senhas
 │   ├── connect_postgres.php      # conexão com PostgreSQL
 │   ├── table.pgsql               # criação das tabelas
+│   ├── vincular_alunos_usuarios.sql # migration do vinculo opcional
 │   └── verificar_user.php        # teste de cadastro e autenticação
 │
 ├── includes/
@@ -328,6 +329,17 @@ php mini_sistema/database/verificar_user.php
 ```
 
 O teste usa uma tabela temporária e faz rollback ao terminar. Para testar manualmente, confira o menu deslogado, crie uma conta comum, tente abrir `/mini_sistema/app/select.php` com ela e depois autentique com a conta admin autorizada.
+
+Após aplicar a migration de vínculo, confira também:
+
+1. Alunos antigos continuam no relatório com **Sem conta** e com os mesmos IDs, CPFs e nascimentos.
+2. O perfil de uma conta sem aluno informa ausência de vínculo.
+3. Como admin, confira e confirme um vínculo pelo relatório. O status passa a **Conta vinculada** e o perfil mostra o aluno correto.
+4. Uma conta não pode ser vinculada a outro aluno e um aluno vinculado não pode receber outra conta.
+5. A edição permite nome, turma, e-mail e situação sem alterar ID, CPF, nascimento ou vínculo.
+6. Em um cadastro de teste com inscrições, a primeira confirmação de exclusão mostra os cursos. Cancelar mantém o aluno; confirmar novamente remove somente o cadastro e preserva a conta e as inscrições.
+
+Esse roteiro orienta testes manuais; não afirma que eles foram executados no banco real.
 
 ## Senhas
 

@@ -36,7 +36,7 @@ Guia para executar, compreender e apresentar o projeto de gestão de alunos.
 
 A Impulso Cursos é uma empresa fictícia de educação. O sistema apresenta os cursos e permite cadastrar, consultar, atualizar e excluir alunos. Os usuários que acessam a gestão fazem login com e-mail e senha.
 
-Esta documentação descreve os 16 arquivos PHP presentes no projeto. As informações sobre o banco são baseadas nas consultas do código, não em uma inspeção da estrutura do servidor.
+Esta documentação descreve os fluxos PHP atuais. As informações sobre o banco seguem o SQL e as consultas do projeto, não uma inspeção do servidor.
 
 ### Tecnologias utilizadas
 
@@ -65,6 +65,8 @@ Esta documentação descreve os 16 arquivos PHP presentes no projeto. As informa
 6. Abra `http://localhost:8000/mini_sistema/index.php`.
 7. Faça login para acessar as páginas de gestão.
 
+Para instalações novas use `database/table.pgsql`. Em bancos existentes execute `database/vincular_alunos_usuarios.sql`; o comando está no [README](README.md#preparar-o-banco-de-dados). Essa migration adiciona o vínculo sem criar contas para alunos antigos ou alterar seus dados, IDs e sequences.
+
 Abrir o PHP diretamente como arquivo no navegador não executa o código. O servidor PHP precisa estar rodando.
 
 ---
@@ -76,9 +78,10 @@ mini_sistema/
 ├── index.php                    # Apresentação da empresa
 ├── app/
 │   ├── create.php               # Cadastro de aluno
+│   ├── admin.php                # Conferência e vínculo de conta
+│   ├── cursos.php               # Cursos e inscrições pela conta
 │   ├── select.php               # Relatório e acesso à edição
 │   ├── select_w_w.php           # Consulta pelo ID informado
-│   ├── select_w.php             # Consulta com ID fixo
 │   ├── update.php               # Carregamento e atualização
 │   └── delete.php               # Busca e confirmação de exclusão
 ├── includes/
@@ -90,6 +93,8 @@ mini_sistema/
 │   ├── login.php                # Autenticação
 │   ├── cadastrar.php            # Cadastro de usuário de acesso
 │   ├── verificar_user.php       # Proteção das páginas
+│   ├── verificar_admin.php      # Restrição administrativa
+│   ├── perfil.php               # Conta e aluno vinculado
 │   └── logout.php               # Encerramento da sessão
 ├── database/
 │   └── connect_postgres.php     # Conexão PDO
@@ -119,7 +124,7 @@ Esse diagrama resume as operações protegidas. Algumas páginas carregam a cone
 
 | Arquivo | Função |
 | --- | --- |
-| `header.php` | Mostra o menu com Início, Cadastrar, Excluir, Relatório, Consultar, Entrar e Sair. Entrar e Sair ficam sempre visíveis. Atualmente não existe a opção Atualizar no menu. |
+| `header.php` | Visitantes veem login e cadastro de conta. Contas comuns veem início, cursos, perfil e sair. Admins também veem gestão de alunos. |
 | `footer.php` | Exibe o texto do rodapé. |
 | `session.php` | Verifica se existe uma sessão ativa e chama `session_start()` quando necessário. |
 | `functions.php` | Carrega a conexão com o banco e reúne as funções de cadastro, consulta, atualização, exclusão e busca de usuários. |
@@ -132,18 +137,20 @@ Esse diagrama resume as operações protegidas. Algumas páginas carregam a cone
 
 | Arquivo | Funcionamento |
 | --- | --- |
-| `login.php` | Recebe e-mail e senha por POST, busca o usuário com `consultar_user()` e compara os dados. Quando correspondem, renova o ID da sessão, guarda o ID do usuário em `$_SESSION['id']` e redireciona ao início. Caso contrário, mostra uma mensagem de erro. |
-| `cadastrar.php` | Mostra o formulário de cadastro de usuário e chama `cadastrar_user()` ao receber POST. Depois tenta redirecionar ao início. Cadastrar usuário não equivale a cadastrar aluno nem realiza login automaticamente. |
+| `login.php` | Busca a conta pelo e-mail e verifica o hash com `password_verify()`. Renova o ID da sessão e guarda ID, e-mail e tipo da conta antes de redirecionar ao início. |
+| `cadastrar.php` | Cria uma conta comum com senha em hash e redireciona ao login. Não cria aluno nem realiza login automático. |
 | `verificar_user.php` | Verifica a sessão. Se `$_SESSION['id']` não existir, redireciona para o login e encerra a execução com `exit()`. |
+| `verificar_admin.php` | Exige login e papel admin. Contas comuns recebem HTTP 403. |
+| `perfil.php` | Busca o aluno usando exclusivamente `$_SESSION['id']`. Exibe seus dados ou informa ausência de vínculo. Senha e CPF não são consultados nessa página. |
 | `logout.php` | Limpa os dados de sessão, destrói a sessão e redireciona para `/mini_sistema/index.php`. |
 
 ### 4.5. Gestão de alunos
 
-Todas as páginas PHP da pasta `app/` incluem a verificação de login.
+Todas as páginas PHP da pasta `app/` exigem login. Gestão de alunos e vínculo exigem admin; cursos aceitam contas comuns e administradores.
 
 #### `create.php` — Cadastro de aluno
 
-Mostra os campos nome, turma, e-mail, nascimento e situação ativa. A turma é escolhida em um `select`:
+Mostra nome, CPF, turma, e-mail, nascimento e situação ativa. O CPF é validado no servidor. A turma é escolhida em um `select`:
 
 | Valor enviado | Opção exibida |
 | --- | --- |
@@ -155,7 +162,7 @@ Ao receber POST, a própria página prepara e executa um `INSERT INTO alunos`. D
 
 #### `select.php` — Relatório
 
-Chama `listarAlunos()` e percorre os resultados com `foreach`. Mostra uma tabela com ID, nome, nascimento, turma, e-mail, situação e ações. A consulta usa `ORDER BY id ASC`, organizando os alunos do menor ID para o maior. Sem registros, mostra “Nenhum aluno cadastrado”.
+Chama `listarAlunos()` com filtros opcionais de turma e situação. Mostra ID, nome, CPF, nascimento, turma, e-mail, situação, conta e ações em ordem crescente de ID. Sem filtros, inclui todos os alunos, mesmo sem conta. A coluna Conta mostra “Conta vinculada” ou “Sem conta”; não consulta senhas.
 
 Cada botão Editar pertence a um formulário que envia o ID por POST para `update.php`. O ID vai em um campo `hidden`, que não aparece na tela.
 
@@ -169,22 +176,29 @@ Cada botão Editar pertence a um formulário que envia o ID por POST para `updat
 
 A confirmação exibida é “ALUNO ATUALIZADO COM SUCESSO! VOLTE AO RELATÓRIO PARA CONFERIR.”. Não há redirecionamento automático ao relatório. O botão Restaurar campos repõe os valores com que o formulário foi carregado, sem alterar o banco.
 
+O ID original fica na sessão. ID, CPF e nascimento são exibidos sem edição; a função grava somente nome, turma, situação e e-mail. A proteção no banco também impede alterar a identidade e trocar um vínculo preenchido.
+
 #### `delete.php` — Exclusão com confirmação
 
 1. O usuário informa o ID e clica em Continuar para exclusão.
 2. A página busca o aluno e mostra ID, nome e turma.
-3. Confirmar exclusão envia novamente o ID e também o campo `confirmar`.
-4. Somente ao receber esse campo a página chama `apagar()`.
+3. Confirmar exclusão valida o token CSRF e os dados pendentes na sessão.
+4. Se a conta tem inscrições, uma segunda tela na própria página lista os cursos e pede “Excluir aluno mesmo com cursos”. A primeira confirmação não exclui.
+5. Após as confirmações necessárias, chama `apagar($conexao, $id)` e remove somente o aluno. A conta e suas inscrições continuam existindo; o perfil perde o vínculo com o cadastro excluído.
 
-Cancelar abre `delete.php` sem enviar o formulário de confirmação. Se o aluno não existir, a página mostra “Aluno não encontrado”. Depois de apagar, volta a mostrar o campo de busca. No código atual, o campo de ID aceita de 1 a 255 no navegador.
+Cancelar abre `delete.php` e limpa as confirmações pendentes. Se as inscrições ou o vínculo mudarem entre requisições, os dados devem ser conferidos novamente. Se o aluno não existir, mostra “Aluno não encontrado”. Após excluir, volta à busca. O campo de ID aceita de 1 a 255 no navegador.
 
 #### `select_w_w.php` — Consulta por ID
 
-É a página aberta pelo menu Consultar. Recebe o ID por POST e chama `read_w_w()` quando o valor é menor que 2147483647. Mostra os dados encontrados ou uma mensagem de ausência de registro. O link Consultas RL abre o relatório.
+É a página aberta pelo menu Consultar. Permite buscar por ID entre 1 e 255 ou por CPF normalizado. Reutiliza `read_w_w()` para mostrar o cadastro e oferece um link ao relatório.
 
-#### `select_w.php` — Consulta com ID fixo
+#### `admin.php` — Vínculo de conta
 
-Define `$id = 7` no código e chama `Consultar()`. Não é a página ligada ao menu Consultar e não tem formulário para escolher outro ID.
+Abra “Vincular conta a aluno” pelo relatório. Informe o ID de um aluno sem conta e o e-mail de uma conta real disponível. A página mostra aluno e conta para conferência e guarda os dados na sessão. A confirmação exige token CSRF e confere novamente a conta antes de preencher `usuario_id`. Não há vínculo automático por e-mail e cada lado aceita somente um vínculo.
+
+#### `cursos.php` — Inscrições
+
+Lista cursos do banco e permite inscrever a conta identificada por `$_SESSION['id']`. Ignora um `usuario_id` enviado pelo navegador. A constraint do par usuário–curso e o `ON CONFLICT` impedem inscrições duplicadas. Contas sem aluno também podem se inscrever.
 
 ---
 
@@ -192,14 +206,16 @@ Define `$id = 7` no código e chama `Consultar()`. Não é a página ligada ao m
 
 ### 5.1. Dados utilizados
 
-O código utiliza duas tabelas distintas:
+O código utiliza quatro tabelas:
 
 | Tabela | Campos usados | Finalidade |
 | --- | --- | --- |
-| `alunos` | `id`, `nome`, `nasc`, `turma`, `ativo`, `email` | Cadastro dos alunos. |
-| `usuarios` | `id`, `email`, `senha` | Contas de acesso ao sistema. |
+| `alunos` | `id`, `nome`, `cpf`, `nasc`, `turma`, `ativo`, `email`, `usuario_id` | Cadastro com conta opcional. |
+| `usuarios` | `id`, `email`, `senha`, `tipo` | Contas e níveis de acesso. |
+| `cursos` | `id`, `nome`, `descricao`, `carga_horaria` | Cursos disponíveis. |
+| `inscricoes` | `id`, `usuario_id`, `curso_id` | Relação única entre conta e curso. |
 
-O ID identifica cada registro. O campo `ativo` representa a situação do aluno; ele não determina se um usuário pode fazer login. As turmas são valores gravados em `alunos.turma`, sem uma tabela de cursos usada pelo código atual.
+O campo `ativo` representa a situação do aluno e não determina acesso à conta. `alunos.turma` é texto e não gera inscrições. `usuario_id` aceita NULL e possui FK e índice único parcial; alunos antigos continuam no relatório sem conta. Consulte o [dicionário](dicionario.md) e os [diagramas](diagrama.md).
 
 ### 5.2. Funções de acesso aos dados
 
@@ -207,14 +223,14 @@ Arquivo: [includes/functions.php](includes/functions.php).
 
 | Função | O que faz |
 | --- | --- |
-| `cadastrar($conexao, $nome, $turma, $nasc, $ativo, $email)` | Insere um aluno e mostra uma mensagem. Não é chamada pela página de cadastro atual. |
-| `listarAlunos($conexao)` | Retorna todos os alunos com `fetchAll()`, ordenados pelo ID. |
-| `apagar($conexao)` | Lê o ID de `$_POST`, executa DELETE e mostra “Registro deletado.”. A confirmação acontece na página `delete.php`. |
-| `Consultar($conexao, $id)` | Busca um aluno e escreve seus dados na página. Usada em `select_w.php`. |
-| `Atualizar($conexao, $id, $nome, $turma, $nasc, $ativo, $email)` | Executa UPDATE para o ID informado e mostra a confirmação de atualização. |
+| `cadastrar($conexao, $nome, $turma, $nasc, $ativo, $email, $cpf)` | Insere um aluno. A página atual executa seu próprio INSERT. |
+| `listarAlunos($conexao, $turma = '', $situacao = 'todas')` | Lista alunos em ordem de ID com filtros opcionais. |
+| `apagar($conexao, $id)` | Exclui somente o aluno e verifica as linhas afetadas. As confirmações ficam em `delete.php`. |
+| `Consultar($conexao, $id)` | Função disponível para buscar e exibir um aluno. |
+| `Atualizar($conexao, $id, $nome, $turma, $nasc, $ativo, $email, $cpf)` | Mantém a assinatura existente e grava somente nome, turma, situação e e-mail. |
 | `read_w_w($conexao, $id)` | Busca e exibe os dados do aluno e um link para voltar ao início. |
-| `cadastrar_user($conexao, $email, $senha)` | Insere os dados de acesso na tabela `usuarios`. |
-| `consultar_user($conexao, $email)` | Busca ID, e-mail e senha e retorna o usuário para o login. |
+| `cadastrar_user($conexao, $email, $senha)` | Valida e-mail e duplicatas e cria uma conta comum com senha em hash. |
+| `consultar_user($conexao, $email)` | Retorna ID, e-mail, hash e tipo para autenticação. |
 
 ---
 
@@ -288,16 +304,7 @@ A primeira etapa só envia o ID. O formulário seguinte contém este botão:
 <input type="submit" name="confirmar" value="Confirmar exclusão">
 ```
 
-A exclusão depende deste trecho, executado após encontrar o aluno:
-
-```php
-if (isset($_POST['confirmar'])) {
-    apagar($conexao);
-    $aluno = false;
-}
-```
-
-`isset` identifica o campo enviado pelo botão de confirmação. A atribuição `$aluno = false` faz a página voltar a mostrar o formulário de busca; quem remove o registro é a função `apagar()`, não essa atribuição.
+A página valida o token e os dados guardados na sessão antes de chamar `apagar($conexao, $id)`. Quando existem cursos, guarda uma segunda confirmação na sessão e exige `confirmar_cursos`. Enviar esse campo diretamente não pula a tela de aviso. A atribuição `$aluno = false` volta à busca depois da exclusão; ela não apaga registros.
 
 Veja o [diagrama de exclusão com confirmação](diagrama.md#exclusão-com-confirmação).
 
@@ -308,13 +315,13 @@ O botão Editar do relatório envia somente o ID. A página carrega os dados, ma
 ```php
 if ($aluno && isset($_POST['nome'])) {
     Atualizar($conexao, $id, $_POST['nome'], $_POST['turma'],
-        $_POST['nasc'], $_POST['ativo'], $_POST['email']);
-    $stmt->execute();
+        $nasc, $_POST['ativo'], $_POST['email'], $cpf);
+    $stmt->execute([':id' => $id]);
     $aluno = $stmt->fetch(PDO::FETCH_ASSOC);
 }
 ```
 
-A função faz o UPDATE. As duas linhas seguintes repetem a consulta SELECT preparada anteriormente e recuperam os dados salvos. Por isso, continuar no formulário preenchido depois de atualizar é esperado.
+A função grava somente os campos permitidos; `$nasc` e `$cpf` vêm da sessão e não são atualizados. As duas linhas seguintes recuperam os dados salvos. Por isso, continuar no formulário preenchido depois de atualizar é esperado.
 
 ### 7.5. HTML e CSS no cartão de um curso
 
@@ -358,6 +365,16 @@ Esse endereço é enviado ao navegador. `exit()` impede que o restante da págin
 | Consultar um ID inexistente válido | Mensagem informando que não há registro. |
 | Buscar para excluir e cancelar | O aluno permanece no relatório. |
 | Confirmar a exclusão de um aluno de teste | Registro removido do relatório. |
+| Abrir gestão com conta comum | HTTP 403. |
+| Abrir perfil sem vínculo | Mensagem simples informando ausência de cadastro de aluno. |
+| Vincular conta pela administração | Conferência antes de salvar; relatório e perfil mostram o vínculo. |
+| Reutilizar conta já vinculada | Operação rejeitada sem substituir o vínculo existente. |
+| Conferir ID, CPF e nascimento após editar | Valores originais preservados. |
+| Inscrever uma conta sem aluno em um curso | Inscrição funciona e não cria aluno automaticamente. |
+| Repetir inscrição no mesmo curso | Nenhuma inscrição duplicada. |
+| Confirmar exclusão de aluno com cursos pela primeira vez | Cursos listados e nova confirmação exigida. |
+| Cancelar a segunda confirmação | Cadastro permanece. |
+| Concluir exclusão de aluno de teste com cursos | Somente aluno removido; conta e inscrições preservadas. |
 | Clicar em Sair | Sessão encerrada; páginas protegidas passam a exigir login. |
 
 Este roteiro é uma orientação de teste, não um registro de testes executados durante a documentação.
@@ -375,19 +392,18 @@ Este roteiro é uma orientação de teste, não um registro de testes executados
 | Não consigo excluir um ID maior que 255 | O formulário de exclusão atual tem `max="255"`. Isso é um limite do formulário, não uma conclusão sobre a capacidade do banco. |
 | O visual antigo continua aparecendo | Atualize com `Ctrl + F5` e confira se o CSS está sendo carregado. |
 | Aparece erro de conexão com o banco | Verifique se o servidor PostgreSQL está acessível e se a conexão está configurada corretamente. |
-| O cadastro de usuário não redireciona | Confira a limitação de envio de cabeçalhos depois do HTML descrita na [seção 10](#10-limitações-da-versão-atual). |
+| Perfil não consegue consultar cadastro de aluno | Confira a conexão e se `vincular_alunos_usuarios.sql` foi executada. O detalhe técnico fica no log. |
+| Vínculo não foi confirmado | Confira se aluno e conta estão disponíveis e se a conta manteve o mesmo e-mail desde a conferência. |
 
 ---
 
 ## 10. Limitações da versão atual
 
 - Novas senhas são gravadas com `password_hash()` e verificadas com `password_verify()`. Antes de usar, execute `database/ajustar_senha.sql` para ampliar o campo para `VARCHAR(255)`. Senhas antigas em texto precisam ser convertidas ou redefinidas; o login não aceita texto puro armazenado no banco.
-- O cadastro de usuário chama `header()` depois de produzir HTML e uma mensagem; o redirecionamento pode falhar se a saída já tiver sido enviada.
 - Parte da validação está apenas no navegador. Os limites de ID também diferem entre as páginas: a exclusão limita o formulário a 255.
 - O cadastro usa uma lista de turmas, mas a edição ainda permite texto livre para turma.
-- As páginas de consulta individual escrevem alguns dados diretamente com `echo`, enquanto o relatório e a edição utilizam `htmlspecialchars`.
-- A confirmação da exclusão depende do campo POST `confirmar`; não existe um token de proteção contra envio de formulário por outro site.
-- Atualização e exclusão não conferem a quantidade de linhas afetadas antes de mostrar suas mensagens de sucesso.
+- Vínculo e exclusão possuem token CSRF; os demais formulários ainda não têm essa proteção.
+- A atualização não confere as linhas afetadas antes de mostrar sucesso; exclusão e vínculo conferem.
 - Atualizar a página após um POST pode solicitar o reenvio do formulário, pois não há redirecionamento após todas as operações.
 
 Essas observações descrevem a implementação encontrada; gerar esta documentação não modifica esses comportamentos.
