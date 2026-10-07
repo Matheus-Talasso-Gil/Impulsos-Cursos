@@ -6,6 +6,7 @@ DO $$
 DECLARE
     coluna SMALLINT;
     destino SMALLINT;
+    chave RECORD;
 BEGIN
     SELECT attnum INTO coluna FROM pg_attribute WHERE attrelid = 'alunos'::regclass AND attname = 'usuario_id';
     SELECT attnum INTO destino FROM pg_attribute WHERE attrelid = 'usuarios'::regclass AND attname = 'id';
@@ -24,6 +25,11 @@ BEGIN
     ) THEN
         ALTER TABLE alunos ADD CONSTRAINT alunos_usuario_fk FOREIGN KEY (usuario_id) REFERENCES usuarios(id);
     END IF;
+    FOR chave IN SELECT conname FROM pg_constraint WHERE conrelid = 'alunos'::regclass
+        AND contype = 'f' AND conkey = ARRAY[coluna] AND NOT convalidated
+    LOOP
+        EXECUTE format('ALTER TABLE alunos VALIDATE CONSTRAINT %I', chave.conname);
+    END LOOP;
     IF NOT EXISTS (
         SELECT 1 FROM pg_index WHERE indrelid = 'alunos'::regclass AND indisunique AND indisvalid
         AND indnkeyatts = 1 AND indkey[0] = coluna

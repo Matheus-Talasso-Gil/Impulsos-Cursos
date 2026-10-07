@@ -19,7 +19,7 @@ Sistema web fictício de gestão de alunos, desenvolvido com PHP, PDO e PostgreS
 | Usuário | Início, perfil, cursos e sair |
 | Administrador | Gestão de alunos, relatório, cursos, perfil e sair |
 
-O cadastro público sempre cria contas do tipo `usuario`. A conta admin é promovida diretamente no banco e uma constraint limita esse papel ao e-mail autorizado. Após mudar o papel no banco, saia e entre novamente para atualizar a sessão. O perfil exibe o e-mail e o tipo da conta; cursos e gerenciamento de usuários ainda são páginas-base.
+O cadastro público sempre cria contas do tipo `usuario`. A conta admin é promovida diretamente no banco e uma constraint limita esse papel ao e-mail autorizado. Após mudar o papel no banco, saia e entre novamente para atualizar a sessão. O perfil exibe os dados do aluno vinculado à conta ou informa que ainda não existe vínculo.
 
 ## Requisitos
 
@@ -274,7 +274,11 @@ Para atualizar um banco existente e permitir o acesso a **Meu perfil** e o vínc
 psql -h HOST -U USUARIO -d BANCO -v ON_ERROR_STOP=1 -f mini_sistema/database/vincular_alunos_usuarios.sql
 ```
 
-Essa migração adiciona `alunos.usuario_id`, suas restrições e a proteção de identidade, sem apagar registros. Depois, vincule o aluno à conta pelo painel administrativo.
+Essa migração adiciona `alunos.usuario_id`, suas restrições e a proteção de identidade, sem apagar registros ou alterar IDs e sequences. Os alunos antigos ficam sem conta e continuam no relatório. A execução pode ser repetida sem duplicar a relação.
+
+No relatório, abra **Vincular conta a aluno**. Informe o ID do aluno e o e-mail de uma conta real existente, confira os dados e confirme. Cada aluno aceita somente uma conta e cada conta aceita somente um aluno. O vínculo não pode ser alterado enquanto o cadastro existir; ID, CPF e nascimento também são imutáveis.
+
+A exclusão administrativa remove somente o cadastro de aluno e desfaz o vínculo por exclusão. A conta e suas inscrições são preservadas. Quando existem inscrições em cursos, uma segunda tela lista os cursos e exige confirmação adicional. Cancelar mantém o cadastro.
 
 Para atualizar um banco existente com o campo de papel, execute a migração:
 
@@ -313,7 +317,7 @@ A constraint `usuarios_admin_email_check` limita `admin` ao e-mail autorizado no
 - Administradores acessam as rotas de gestão protegidas por `login/verificar_admin.php`.
 - O login verifica a senha com `password_verify()` e regenera o ID da sessão após autenticar.
 - O CPF é validado matematicamente no cadastro e na edição. Isso confere os dígitos verificadores, mas não consulta a Receita Federal nem confirma titularidade.
-- Cursos e perfil são páginas-base para expansão futura.
+- Cursos permitem inscrição pela conta logada e o perfil consulta o aluno pelo ID da sessão.
 
 ## Testes
 

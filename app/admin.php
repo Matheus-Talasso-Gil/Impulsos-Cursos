@@ -14,8 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (isset($_POST['confirmar'])) {
                 $dados = $_SESSION['vinculo_pendente'] ?? [];
                 unset($_SESSION['vinculo_pendente']);
-                $stmt = $conexao->prepare('UPDATE alunos SET usuario_id = :usuario WHERE id = :aluno AND usuario_id IS NULL');
-                $stmt->execute([':usuario' => $dados['usuario_id'] ?? 0, ':aluno' => $dados['aluno_id'] ?? 0]);
+                $stmt = $conexao->prepare('UPDATE alunos SET usuario_id = :usuario WHERE id = :aluno AND usuario_id IS NULL AND EXISTS (SELECT 1 FROM usuarios WHERE id = :conta AND email = :email)');
+                $stmt->execute([':usuario' => $dados['usuario_id'] ?? 0, ':aluno' => $dados['aluno_id'] ?? 0, ':conta' => $dados['usuario_id'] ?? 0, ':email' => $dados['email'] ?? '']);
                 $mensagem = $stmt->rowCount() ? 'Conta vinculada com sucesso. O vínculo é permanente.' : 'Aluno não encontrado ou já vinculado.';
             } else {
                 unset($_SESSION['vinculo_pendente']);
