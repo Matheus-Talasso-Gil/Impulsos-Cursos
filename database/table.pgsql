@@ -109,5 +109,6 @@ $$;
 
 COMMIT;
 
-psql -h HOST -U USUARIO -d BANCO -v ON_ERROR_STOP=1 -f mini_sistema/database/vincular_alunos_usuarios.sql
+-- Para atualizar bancos existentes, execute no terminal:
+-- psql -h HOST -U USUARIO -d BANCO -v ON_ERROR_STOP=1 -f mini_sistema/database/vincular_alunos_usuarios.sql
 

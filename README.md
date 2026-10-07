@@ -266,7 +266,15 @@ mini_sistema/
     psql -h HOST -U USUARIO -d BANCO -f mini_sistema/database/table.pgsql
     ```
 
-Substitua `HOST`, `USUARIO` e `BANCO` pelos valores da sua instalação. `table.pgsql` cria tabelas ausentes sem apagar dados, mas não altera tabelas que já existem.
+Substitua `HOST`, `USUARIO` e `BANCO` pelos valores da sua instalação. `table.pgsql` cria tabelas ausentes sem apagar dados e aplica a estrutura de vínculo entre alunos e usuários.
+
+Para atualizar um banco existente e permitir o acesso a **Meu perfil** e o vínculo de contas no painel administrativo, execute:
+
+```powershell
+psql -h HOST -U USUARIO -d BANCO -v ON_ERROR_STOP=1 -f mini_sistema/database/vincular_alunos_usuarios.sql
+```
+
+Essa migração adiciona `alunos.usuario_id`, suas restrições e a proteção de identidade, sem apagar registros. Depois, vincule o aluno à conta pelo painel administrativo.
 
 Para atualizar um banco existente com o campo de papel, execute a migração:
 
