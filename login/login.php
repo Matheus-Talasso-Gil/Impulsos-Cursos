@@ -34,8 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 <?php include __DIR__ . '/../includes/header.php'; ?>
 <main class="auth-page">
-    <h1>Área do funcionário</h1>
-    <p>Faça login para gerenciar os alunos da Impulso Cursos.</p>
+    <h1>Login</h1>
+    <p>Entre com seu e-mail e senha para acessar sua conta na Impulso Cursos.</p>
     <?php if (($_GET['expirou'] ?? '') === '1'): ?>
         <p class="message-warning" role="status">Sua sessão expirou por inatividade. Faça login novamente.</p>
     <?php endif; ?>

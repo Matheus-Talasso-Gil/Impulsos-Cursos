@@ -13,15 +13,19 @@ try {
     error_log($e->getMessage());
     $erroPerfil = 'Não foi possível consultar seu cadastro de aluno. Entre em contato com o administrador.';
 }
-$tipoConta = ($_SESSION['tipo'] ?? 'usuario') === 'admin' ? 'Administrador' : 'Usuário';
+$ehAdmin = ($_SESSION['tipo'] ?? 'usuario') === 'admin';
+$tipoConta = $ehAdmin ? 'Administrador' : 'Usuário';
 $cursos = [];
 $erroCursos = '';
-try {
-    // Mantém os três primeiros cursos como prévia; o link do perfil leva à lista completa.
-    $cursos = array_slice(buscarCursosDoUsuario($conexao), 0, 3);
-} catch (PDOException $e) {
-    error_log($e->getMessage());
-    $erroCursos = 'Não foi possível carregar seus cursos. Tente novamente.';
+// O perfil administrativo não exibe cursos, então evita também essa consulta para admins.
+if (!$ehAdmin) {
+    try {
+        // Mantém os três primeiros cursos como prévia; o link do perfil leva à lista completa.
+        $cursos = array_slice(buscarCursosDoUsuario($conexao), 0, 3);
+    } catch (PDOException $e) {
+        error_log($e->getMessage());
+        $erroCursos = 'Não foi possível carregar seus cursos. Tente novamente.';
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -50,6 +54,7 @@ try {
         <?php else: ?>
             <p>Sua conta ainda não está vinculada a um cadastro de aluno.</p>
         <?php endif; ?>
+        <?php if (!$ehAdmin): ?>
         <section class="profile-courses" aria-labelledby="seus-cursos">
             <h2 id="seus-cursos">Seus cursos</h2>
             <?php if ($erroCursos !== ''): ?>
@@ -65,6 +70,7 @@ try {
             <?php endif; ?>
             <a class="report-link" href="/mini_sistema/app/meus_cursos.php">Ver todos os meus cursos</a>
         </section>
+        <?php endif; ?>
     </main>
     <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>
