@@ -124,6 +124,38 @@ function read_w_w($conexao, $id)
     }
     echo '<a class="lookup-home-link" href="../index.php">Voltar ao início</a>';
 }
+function cadastrar_aluno_usuario($conexao, array $dados)
+{
+    $nome = trim($dados['nome'] ?? '');
+    $email = trim($dados['email'] ?? '');
+    $cpf = preg_replace('/\D/', '', $dados['cpf'] ?? '');
+    $turma = 'Sem turma'; // O administrador define a turma depois do cadastro.
+    $nasc = $dados['nasc'] ?? '';
+    $data = DateTimeImmutable::createFromFormat('!Y-m-d', $nasc);
+    if ($nome === '' || strlen($nome) > 255) {
+        throw new InvalidArgumentException('Informe um nome com até 255 caracteres.');
+    }
+    if (!validar_cpf($cpf)) throw new InvalidArgumentException('Informe um CPF válido.');
+    if (!$data || $data->format('Y-m-d') !== $nasc || $nasc > date('Y-m-d')) {
+        throw new InvalidArgumentException('Informe uma data de nascimento válida.');
+    }
+    // Salva conta e aluno juntos, deixando o vínculo para confirmação do admin.
+    $conexao->beginTransaction();
+    try {
+        $stmt = $conexao->prepare("SELECT id FROM alunos WHERE regexp_replace(cpf, '[^0-9]', '', 'g') = :cpf");
+        $stmt->execute([':cpf' => $cpf]);
+        if ($stmt->fetchColumn() !== false) {
+            throw new InvalidArgumentException('Este CPF já possui cadastro de aluno. Procure o administrador.');
+        }
+        cadastrar_user($conexao, $email, $dados['senha'] ?? '');
+        $stmt = $conexao->prepare('INSERT INTO alunos (nome, cpf, nasc, turma, ativo, email) VALUES (:nome, :cpf, :nasc, :turma, TRUE, :email)');
+        $stmt->execute([':nome' => $nome, ':cpf' => $cpf, ':nasc' => $nasc, ':turma' => $turma, ':email' => $email]);
+        $conexao->commit();
+    } catch (Throwable $e) {
+        if ($conexao->inTransaction()) $conexao->rollBack();
+        throw $e;
+    }
+}
 function cadastrar_user($conexao, $email, $senha) // valida o email e cria uma conta comum com senha em hash
 {
     $email = trim($email); // remove espacos ao redor do email informado sem alterar a senha

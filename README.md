@@ -4,7 +4,7 @@ Sistema web fictício de gestão de alunos, desenvolvido com PHP, PDO e PostgreS
 
 ## Funcionalidades
 
-- Cadastro, consulta, edição e exclusão de alunos
+- Cadastro público de conta e aluno em Cadastre-se; consulta, edição e exclusão administrativas
 - Pesquisa de aluno por ID ou CPF
 - Relatório com filtros por turma e situação
 - Validação matemática dos dígitos verificadores do CPF
@@ -27,7 +27,7 @@ A recuperação de senha funciona somente em conexões locais (`127.0.0.1` ou `:
 
 | Perfil | Acesso |
 | --- | --- |
-| Visitante | Login e cadastro de conta |
+| Visitante | Login e cadastro de conta com dados do aluno |
 | Usuário | Início, perfil, cursos e sair |
 | Administrador | Gestão de alunos, relatório, cursos, perfil e sair |
 
@@ -214,7 +214,7 @@ impulsos_cursos/
 ├── app/
 │   ├── admin.php                 # área administrativa
 │   ├── alunos_cursos.php         # consulta dos cursos dos alunos
-│   ├── create.php                # cadastro de alunos
+│   ├── create.php                # redirecionamento para cadastro/vínculo
 │   ├── curso.php                 # detalhes e inscrição em um curso
 │   ├── curso_create.php          # cadastro de cursos
 │   ├── curso_delete.php          # exclusão de cursos
@@ -324,6 +324,8 @@ psql -h HOST -U USUARIO -d BANCO -v ON_ERROR_STOP=1 -f impulsos_cursos/database/
 Essa migração adiciona `alunos.usuario_id`, suas restrições e a proteção de identidade, sem apagar registros ou alterar IDs e sequences. Os alunos antigos ficam sem conta e continuam no relatório. A execução pode ser repetida sem duplicar a relação.
 
 No relatório, abra **Vincular conta a aluno**. Informe o ID do aluno e o e-mail de uma conta real existente, confira os dados e confirme. Cada aluno aceita somente uma conta e cada conta aceita somente um aluno. O vínculo não pode ser alterado enquanto o cadastro existir; ID, CPF e nascimento também são imutáveis.
+
+Em **Cadastre-se**, o próprio aluno informa nome, CPF, nascimento, e-mail e senha. Conta e aluno são gravados na mesma transação, com o aluno ativo, sem turma e ainda sem vínculo. O administrador define a turma na edição do aluno e confirma o vínculo usando o ID do aluno no relatório e o e-mail cadastrado. O painel e o menu administrativos não oferecem mais cadastro de aluno. Se CPF ou e-mail já estiverem cadastrados, o cadastro público é recusado, sem salvar registros parciais.
 
 A exclusão administrativa remove somente o cadastro de aluno e desfaz o vínculo por exclusão. A conta e suas inscrições são preservadas. Quando existem inscrições em cursos, uma segunda tela lista os cursos e exige confirmação adicional. Cancelar mantém o cadastro.
 

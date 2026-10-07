@@ -51,7 +51,6 @@ try {
         <section class="admin-actions" aria-labelledby="gerenciamento-titulo">
             <h2 id="gerenciamento-titulo">Gerenciamento</h2>
             <div class="admin-action-links">
-                <a class="report-link" href="create.php">Cadastrar aluno</a>
                 <a class="report-link" href="select_w_w.php">Consultar aluno</a>
                 <a class="report-link" href="select.php">Relatório de alunos</a>
                 <a class="report-link" href="delete.php">Excluir aluno</a>

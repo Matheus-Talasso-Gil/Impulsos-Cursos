@@ -17,7 +17,6 @@
                     <details class="nav-group">
                         <summary>Alunos</summary>
                         <div class="nav-dropdown">
-                            <a href="/impulsos_cursos/app/create.php">Cadastrar aluno</a>
                             <a href="/impulsos_cursos/app/select_w_w.php">Consultar aluno</a>
                             <a href="/impulsos_cursos/app/select.php">Relatório de alunos</a>
                             <a href="/impulsos_cursos/app/alunos_cursos.php">Cursos dos alunos</a>
