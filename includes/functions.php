@@ -185,3 +185,29 @@ function inscreverUsuarioNoCurso($conexao, $cursoId, $token)
     if (!buscarCursoPorId($conexao, $cursoId)) throw new InvalidArgumentException('Curso não encontrado.');
     return 'Você já está inscrito neste curso.';
 }
+
+// Valida os campos conforme os limites atuais da tabela cursos (nome VARCHAR(100) e carga INTEGER).
+function validarDadosCursoAdmin($dados)
+{
+    $nome = is_string($dados['nome'] ?? null) ? trim($dados['nome']) : '';
+    $descricao = is_string($dados['descricao'] ?? null) ? trim($dados['descricao']) : '';
+    $carga = filter_var($dados['carga_horaria'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 2147483647]]);
+    if ($nome === '' || preg_match('/^.{1,100}$/us', $nome) !== 1) {
+        throw new InvalidArgumentException('Informe um nome com até 100 caracteres.');
+    }
+    if ($carga === false) throw new InvalidArgumentException('Informe uma carga horária inteira maior que zero.');
+    return ['nome' => $nome, 'descricao' => $descricao, 'carga_horaria' => $carga];
+}
+function validarTokenCursoAdmin($token)
+{
+    if (!is_string($token) || !isset($_SESSION['curso_admin_token']) || !hash_equals($_SESSION['curso_admin_token'], $token)) {
+        throw new InvalidArgumentException('Solicitação inválida. Recarregue a página e tente novamente.');
+    }
+}
+function buscarCursoAdmin($conexao, $id)
+{
+    // A subconsulta conta inscrições sem depender da conta autenticada.
+    $stmt = $conexao->prepare('SELECT c.id, c.nome, c.descricao, c.carga_horaria, (SELECT COUNT(*) FROM inscricoes i WHERE i.curso_id = c.id) AS inscritos FROM cursos c WHERE c.id = :id');
+    $stmt->execute([':id' => $id]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}

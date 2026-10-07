@@ -31,6 +31,7 @@
                         </div>
                     </details>
                     <a href="/mini_sistema/app/alunos_cursos.php">Cursos dos alunos</a>
+                    <a href="/mini_sistema/app/cursos_admin.php">Gerenciar cursos</a>
                 </div>
             <?php else: ?>
                 <div class="nav-links">
