@@ -7,44 +7,47 @@ require_once __DIR__ . '/../login/verificar_cpf.php';
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8"> <!-- permite usar caracteres especiais e acentos na pagina -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- faz a pagina se adaptar melhor em celular -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cadastro de Aluno</title>
-    <link rel="stylesheet" href="../css/style.css"> <!-- puxa o arquivo css que estiliza a pagina -->
+    <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
     <?php include __DIR__ . '/../includes/header.php'; ?>
     <main>
         <h1>Matricular aluno</h1>
         <?php
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') { // so executa o cadastro quando o formulario for enviado
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            // Retorna o CPF sem pontuação ou false quando o tamanho ou os dígitos verificadores são inválidos.
             $cpf = verificar_cpf($_POST['cpf'] ?? '');
             if ($cpf === false) {
                 echo '<p class="message-error" role="alert">Informe um CPF válido.</p>';
             } else {
-                // inclui o cpf no insert para manter o cadastro completo do aluno
-                $sql = "INSERT INTO alunos  (nome, cpf, nasc, turma, ativo, email) 
-                        VALUES   (:nome, :cpf, :nasc, :turma, :ativo, :email)"; // cria o comando para inserir um novo aluno
-                $stmt = $conexao->prepare($sql); // prepara o comando antes de enviar para o banco
-                $stmt->bindParam(":nome", $_POST['nome']); // liga os dados do formulario aos parametros do sql
-                $stmt->bindParam(":cpf", $cpf); // guarda o cpf limpo no banco
-                $stmt->bindParam(":nasc", $_POST['nasc']); // associa a data de nascimento ao parâmetro sql
-                $stmt->bindParam(":turma", $_POST['turma']); // associa a turma selecionada ao parâmetro sql
-                $stmt->bindParam(":ativo", $_POST['ativo']); // associa a situação escolhida ao parâmetro sql
-                $stmt->bindParam(":email", $_POST['email']); // associa o e-mail informado ao parâmetro sql
-                $stmt->execute(); // executa o cadastro no banco
+
+
+    $sql = "INSERT INTO alunos  (nome, cpf, nasc, turma, ativo, email)
+                        VALUES   (:nome, :cpf, :nasc, :turma, :ativo, :email)";
+                // Os marcadores recebem os valores separados do SQL, evitando injeção SQL nos campos do formulário.
+                $stmt = $conexao->prepare($sql);
+                $stmt->bindParam(":nome", $_POST['nome']);
+                $stmt->bindParam(":cpf", $cpf);
+                $stmt->bindParam(":nasc", $_POST['nasc']);
+                $stmt->bindParam(":turma", $_POST['turma']);
+                $stmt->bindParam(":ativo", $_POST['ativo']);
+                $stmt->bindParam(":email", $_POST['email']);
+                $stmt->execute();
                 echo '<p class="message-success" role="status">Aluno cadastrado com sucesso!</p>';
             }
         }
         ?>
-        <form action="" method="post"> <!-- envia os dados do formulario para a mesma pagina -->
+        <form action="" method="post">
             <label for="nome">Nome: </label>
             <input type="text" name="nome" id="nome" required>
-            <!-- campo obrigatório para identificar o aluno sem ambiguidade -->
+
             <label for="cpf">CPF: </label>
             <input type="text" name="cpf" id="cpf" maxlength="14" placeholder="000.000.000-00" inputmode="numeric" required>
             <label for="turma">Turma: </label>
-            <select name="turma" id="turma" required> <!-- cria uma lista de turmas para o usuario escolher -->
+            <select name="turma" id="turma" required>
                 <option value="" selected disabled>Selecione a turma</option>
                 <option value="INF-01">INF-01 — Informática Básica</option>
                 <option value="ING-01">ING-01 — Inglês</option>

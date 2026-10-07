@@ -174,6 +174,15 @@ Implementação da validação matemática de CPF, criação do verificador de C
 ![Trello - commits 64 a 70](trello/commits64-70.png)
 
 </details>
+
+<details>
+<summary><strong>Commits 71–77</strong></summary>
+
+Atualização do quadro Trello com o acompanhamento das tarefas de perfil do usuário, cursos e níveis de acesso.
+
+![Trello - commits 71 a 77](trello/commits71-77.png)
+
+</details>
 <!-- markdownlint-enable MD033 -->
 
 ## Estrutura principal

@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <?php include __DIR__ . '/includes/header.php';?>
+    <?php include __DIR__ . '/includes/header.php'; ?>
     <main>
         <article>
             <h1>Impulso Cursos</h1>
@@ -36,6 +36,6 @@
             </div>
         </section>
     </main>
-    <?php include __DIR__ . '/includes/footer.php';?>
+    <?php include __DIR__ . '/includes/footer.php'; ?>
 </body>
 </html>

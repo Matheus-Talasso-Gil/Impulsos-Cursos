@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../login/verificar_user.php';
 require_once __DIR__ . '/../includes/functions.php';
-$_SESSION['inscricao_token'] ??= bin2hex(random_bytes(32));
+$_SESSION['inscricao_token'] ??= bin2hex(random_bytes(32)); // cria um token aleatorio na sessao somente se ele ainda nao existir para proteger o formulario
 $mensagem = '';
 $erro = '';
 $erroListagem = '';
@@ -61,7 +61,7 @@ try {
                             <?php if ($curso['inscrito']): ?>
                                 <span class="course-enrolled">Já inscrito</span>
                             <?php else: ?>
-                                <form method="post" class="course-enrollment"><!-- envia o curso escolhido para inscricao -->
+                                <form method="post" class="course-enrollment">
                                     <input type="hidden" name="curso_id" value="<?= (int) $curso['id'] ?>">
                                     <input type="hidden" name="token" value="<?= htmlspecialchars($_SESSION['inscricao_token'], ENT_QUOTES, 'UTF-8') ?>">
                                     <input type="submit" value="Inscrever-se">

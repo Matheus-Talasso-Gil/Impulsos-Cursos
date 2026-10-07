@@ -2,8 +2,9 @@
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../login/verificar_user.php';
 require_once __DIR__ . '/../includes/functions.php';
-$_SESSION['inscricao_token'] ??= bin2hex(random_bytes(32));
+$_SESSION['inscricao_token'] ??= bin2hex(random_bytes(32)); // cria um token aleatorio na sessao somente se ele ainda nao existir para proteger o formulario
 $id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 2147483647]]);
+// A validação acima aceita apenas IDs positivos dentro do intervalo de um inteiro do PostgreSQL.
 $curso = false;
 $erro = '';
 $mensagem = '';
@@ -18,6 +19,7 @@ if ($id === false) {
             $erro = 'Curso não encontrado.';
         } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mensagem = inscreverUsuarioNoCurso($conexao, $id, $_POST['token'] ?? null);
+            // Reconsulta para que a página mostre o estado de inscrito após o envio.
             $curso = buscarCursoPorId($conexao, $id);
         }
     } catch (InvalidArgumentException $e) {
@@ -48,6 +50,7 @@ if ($id === false) {
         <p class="message-error" role="alert"><?= htmlspecialchars($erro, ENT_QUOTES, 'UTF-8') ?></p>
     <?php endif; ?>
     <?php if ($curso): ?>
+        <?php // htmlspecialchars escapa os dados do banco para exibi-los como texto, sem interpretar HTML. ?>
         <article class="course-card">
             <h2><?= htmlspecialchars((string) $curso['nome'], ENT_QUOTES, 'UTF-8') ?></h2>
             <p class="course-description"><?= htmlspecialchars((string) ($curso['descricao'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>

@@ -2,19 +2,21 @@
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/functions.php';
 $erro = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') { // só verifica as credenciais após o envio do formulário
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        $usuario = consultar_user($conexao, $_POST['email'] ?? ''); // procura a conta pelo e-mail enviado
-        if ($usuario && password_verify($_POST['senha'] ?? '', $usuario['senha'])) { // compara a senha digitada com o hash salvo
-            session_regenerate_id(true); // evita reutilizar o identificador antigo da sessão
-            $_SESSION['id'] = $usuario['id']; // marca o funcionário como autenticado
+        $usuario = consultar_user($conexao, $_POST['email'] ?? '');
+        // Confere a senha digitada contra o hash armazenado, somente se a conta foi encontrada.
+        if ($usuario && password_verify($_POST['senha'] ?? '', $usuario['senha'])) {
+            // Troca o ID da sessão após autenticar, protegendo contra fixação de sessão.
+            session_regenerate_id(true);
+            $_SESSION['id'] = $usuario['id'];
             $_SESSION['email'] = $usuario['email'];
             $_SESSION['tipo'] = $usuario['tipo'] ?? 'usuario';
-            header('Location: ../index.php'); exit(); // abre a página inicial após o login
+            header('Location: ../index.php'); exit();
         }
         $erro = 'Usuário ou senha inválidos';
     } catch (PDOException $e) {
-        error_log($e->getMessage()); // registra o detalhe técnico sem exibi-lo ao usuário
+        error_log($e->getMessage());
         $erro = 'Não foi possível consultar o cadastro. Tente novamente.';
     }
 }

@@ -3,14 +3,14 @@ require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/functions.php';
 if (isset($_SESSION['id'])) { header('Location: /mini_sistema/login/perfil.php'); exit(); }
 $erro = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') { // só processa a conta quando o formulário é enviado
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        cadastrar_user($conexao, $_POST['email'] ?? '', $_POST['senha'] ?? ''); // valida e salva o usuário
-        header('Location: login.php?cadastro=sucesso'); exit(); // redireciona para o login após cadastrar
+        cadastrar_user($conexao, $_POST['email'] ?? '', $_POST['senha'] ?? '');
+        header('Location: login.php?cadastro=sucesso'); exit();
     } catch (InvalidArgumentException $e) {
-        $erro = $e->getMessage(); // mostra validações como e-mail inválido ou duplicado
+        $erro = $e->getMessage();
     } catch (PDOException $e) {
-        error_log($e->getMessage()); // mantém o detalhe técnico no log do servidor
+        error_log($e->getMessage());
         $erro = 'Não foi possível salvar o cadastro. Tente novamente.';
     }
 }

@@ -4,6 +4,7 @@ require_once __DIR__ . '/verificar_user.php';
 require_once __DIR__ . '/../includes/functions.php';
 $aluno = false;
 $erroPerfil = '';
+// Busca o cadastro pelo ID da conta autenticada, sem aceitar o ID de outro usuário pelo formulário ou pela URL.
 try {
     $stmt = $conexao->prepare('SELECT id, nome, nasc, turma, email, ativo FROM alunos WHERE usuario_id = :usuario_id');
     $stmt->execute([':usuario_id' => (int) $_SESSION['id']]);
@@ -16,6 +17,7 @@ $tipoConta = ($_SESSION['tipo'] ?? 'usuario') === 'admin' ? 'Administrador' : 'U
 $cursos = [];
 $erroCursos = '';
 try {
+    // Mantém os três primeiros cursos como prévia; o link do perfil leva à lista completa.
     $cursos = array_slice(buscarCursosDoUsuario($conexao), 0, 3);
 } catch (PDOException $e) {
     error_log($e->getMessage());
@@ -40,6 +42,7 @@ try {
             <p class="message-error" role="alert"><?= htmlspecialchars($erroPerfil, ENT_QUOTES, 'UTF-8') ?></p>
         <?php elseif ($aluno): ?>
             <h2>Cadastro de aluno</h2>
+            <?php // As chaves são colunas do banco; os valores são os rótulos exibidos ao usuário. ?>
             <?php foreach (['id' => 'ID', 'nome' => 'Nome', 'nasc' => 'Data de nascimento', 'turma' => 'Turma', 'email' => 'E-mail do aluno'] as $campo => $rotulo): ?>
                 <p><?= $rotulo ?>: <?= htmlspecialchars((string) $aluno[$campo], ENT_QUOTES, 'UTF-8') ?></p>
             <?php endforeach; ?>
