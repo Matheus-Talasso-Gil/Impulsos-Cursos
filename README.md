@@ -183,21 +183,38 @@ Atualização do quadro Trello com o acompanhamento das tarefas de perfil do usu
 ![Trello - commits 71 a 77](trello/commits71-77.png)
 
 </details>
+<details>
+<summary><strong>Commits 78–84</strong></summary>
+
+Atualização do quadro Trello com o acompanhamento das tarefas concluídas, em andamento e planejadas, incluindo recuperação de senha, dashboard do usuário e níveis de acesso.
+
+![Trello - commits 78 a 84](trello/commits78-84.png)
+
+</details>
 <!-- markdownlint-enable MD033 -->
 
 ## Estrutura principal
 
 ```text
-mini_sistema/
+impulsos_cursos/
 ├── app/
 │   ├── admin.php                 # área administrativa
+│   ├── alunos_cursos.php         # consulta dos cursos dos alunos
 │   ├── create.php                # cadastro de alunos
-│   ├── cursos.php                # página de cursos
+│   ├── curso.php                 # detalhes e inscrição em um curso
+│   ├── curso_create.php          # cadastro de cursos
+│   ├── curso_delete.php          # exclusão de cursos
+│   ├── curso_update.php          # edição de cursos
+│   ├── cursos.php                # catálogo de cursos
+│   ├── cursos_admin.php          # gestão administrativa de cursos
 │   ├── delete.php                # exclusão de alunos
+│   ├── meus_cursos.php           # cursos da conta autenticada
 │   ├── select.php                # relatório/listagem de alunos
 │   ├── select_w_w.php            # consulta individual
 │   ├── tabela.md                 # documentação relacionada às tabelas
-│   └── update.php                # edição de alunos
+│   ├── update.php                # edição de alunos
+│   ├── usuarios.php              # consulta de usuários e seus vínculos
+│   └── vincular_conta.php        # vínculo entre conta e aluno
 │
 ├── css/
 │   └── style.css                 # estilos compartilhados do sistema
@@ -209,13 +226,15 @@ mini_sistema/
 │   ├── ajustar_senha.sql         # ajustes relacionados às senhas
 │   ├── connect_postgres.php      # conexão com PostgreSQL
 │   ├── table.pgsql               # criação das tabelas
-│   ├── vincular_alunos_usuarios.sql # migration do vinculo opcional
+│   ├── vincular_alunos_usuarios.sql # migração do vínculo opcional
 │   └── verificar_user.php        # teste de cadastro e autenticação
 │
 ├── includes/
+│   ├── curso_admin_form.php      # formulário compartilhado de gestão de cursos
 │   ├── footer.php                # rodapé compartilhado
 │   ├── functions.php             # funções reutilizadas pelo sistema
 │   ├── header.php                # header adaptado conforme o tipo de usuário
+│   ├── recuperacao_senha.php     # funções de recuperação de senha demonstrativa local
 │   └── session.php               # gerenciamento da sessão
 │
 ├── login/
@@ -223,6 +242,8 @@ mini_sistema/
 │   ├── login.php                 # autenticação
 │   ├── logout.php                # encerramento da sessão
 │   ├── perfil.php                # perfil do usuário
+│   ├── recuperar_senha.php       # solicitação de recuperação de senha
+│   ├── redefinir_senha.php       # definição de uma nova senha
 │   ├── verificar_admin.php       # proteção de páginas administrativas
 │   ├── verificar_cpf.php         # validação/verificação de CPF
 │   └── verificar_user.php        # proteção de páginas autenticadas
@@ -256,7 +277,9 @@ mini_sistema/
 │   ├── commits43-49.png
 │   ├── commits50-56.png
 │   ├── commits57-63.png
-│   └── commits64-70.png
+│   ├── commits64-70.png
+│   ├── commits71-77.png
+│   └── commits78-84.png
 │
 ├── briefing.md
 ├── diagrama.md
@@ -270,10 +293,10 @@ mini_sistema/
 
 1. Crie o banco PostgreSQL que será usado pelo sistema.
 2. Configure host, nome do banco, usuário e senha em `database/connect_postgres.php`.
-3. No terminal aberto na pasta que contém `mini_sistema`, crie as tabelas iniciais:
+3. No terminal aberto na pasta que contém `impulsos_cursos`, crie as tabelas iniciais:
 
     ```powershell
-    psql -h HOST -U USUARIO -d BANCO -f mini_sistema/database/table.pgsql
+    psql -h HOST -U USUARIO -d BANCO -f impulsos_cursos/database/table.pgsql
     ```
 
 Substitua `HOST`, `USUARIO` e `BANCO` pelos valores da sua instalação. `table.pgsql` cria tabelas ausentes sem apagar dados e aplica a estrutura de vínculo entre alunos e usuários.
@@ -281,7 +304,7 @@ Substitua `HOST`, `USUARIO` e `BANCO` pelos valores da sua instalação. `table.
 Para atualizar um banco existente e permitir o acesso a **Meu perfil** e o vínculo de contas no painel administrativo, execute:
 
 ```powershell
-psql -h HOST -U USUARIO -d BANCO -v ON_ERROR_STOP=1 -f mini_sistema/database/vincular_alunos_usuarios.sql
+psql -h HOST -U USUARIO -d BANCO -v ON_ERROR_STOP=1 -f impulsos_cursos/database/vincular_alunos_usuarios.sql
 ```
 
 Essa migração adiciona `alunos.usuario_id`, suas restrições e a proteção de identidade, sem apagar registros ou alterar IDs e sequences. Os alunos antigos ficam sem conta e continuam no relatório. A execução pode ser repetida sem duplicar a relação.
@@ -293,7 +316,7 @@ A exclusão administrativa remove somente o cadastro de aluno e desfaz o víncul
 Para atualizar um banco existente com o campo de papel, execute a migração:
 
 ```powershell
-psql -h HOST -U USUARIO -d BANCO -f mini_sistema/database/adicionar_tipo_usuario.sql
+psql -h HOST -U USUARIO -d BANCO -f impulsos_cursos/database/adicionar_tipo_usuario.sql
 ```
 
 O papel padrão é `usuario`. Para promover a conta autorizada, conecte-se ao banco e execute:
@@ -311,14 +334,14 @@ A constraint `usuarios_admin_email_check` limita `admin` ao e-mail autorizado no
 ## Executar o sistema
 
 1. Confirme que PHP está com `pdo_pgsql` habilitado e que `connect_postgres.php` está configurado.
-2. No terminal aberto na pasta que contém `mini_sistema`, inicie o servidor:
+2. No terminal aberto na pasta que contém `impulsos_cursos`, inicie o servidor:
 
     ```powershell
     php -S 127.0.0.1:8000
     ```
 
-3. Acesse `http://127.0.0.1:8000/mini_sistema/`.
-4. Cadastre um usuário em `http://127.0.0.1:8000/mini_sistema/login/cadastrar.php`. O cadastro público sempre cria uma conta comum.
+3. Acesse `http://127.0.0.1:8000/impulsos_cursos/`.
+4. Cadastre um usuário em `http://127.0.0.1:8000/impulsos_cursos/login/cadastrar.php`. O cadastro público sempre cria uma conta comum.
 
 ## Acesso e segurança
 
@@ -331,13 +354,13 @@ A constraint `usuarios_admin_email_check` limita `admin` ao e-mail autorizado no
 
 ## Testes
 
-Com o terminal na pasta que contém `mini_sistema`, rode o teste de cadastro/autenticação:
+Com o terminal na pasta que contém `impulsos_cursos`, rode o teste de cadastro/autenticação:
 
 ```powershell
-php mini_sistema/database/verificar_user.php
+php impulsos_cursos/database/verificar_user.php
 ```
 
-O teste usa uma tabela temporária e faz rollback ao terminar. Para testar manualmente, confira o menu deslogado, crie uma conta comum, tente abrir `/mini_sistema/app/select.php` com ela e depois autentique com a conta admin autorizada.
+O teste usa uma tabela temporária e faz rollback ao terminar. Para testar manualmente, confira o menu deslogado, crie uma conta comum, tente abrir `/impulsos_cursos/app/select.php` com ela e depois autentique com a conta admin autorizada.
 
 Após aplicar a migration de vínculo, confira também:
 

@@ -53,6 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="submit" value="Entrar">
         <input type="reset" value="Limpar">
     </form>
+    <p><a href="recuperar_senha.php">Esqueci minha senha</a></p>
     <p><a href="cadastrar.php">Cadastrar usuário</a></p>
 </main>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

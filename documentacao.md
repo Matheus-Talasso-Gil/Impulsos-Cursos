@@ -55,14 +55,14 @@ Esta documentação descreve os fluxos PHP atuais. As informações sobre o banc
 1. Tenha PHP com PDO e o driver PostgreSQL habilitados.
 2. Tenha acesso ao servidor PostgreSQL e às tabelas necessárias.
 3. Confira a configuração em `database/connect_postgres.php`.
-4. Mantenha a pasta do projeto com o nome `mini_sistema`, usado nos links.
-5. Abra o terminal na pasta que contém `mini_sistema` e execute:
+4. Mantenha a pasta do projeto com o nome `impulsos_cursos`, usado nos links.
+5. Abra o terminal na pasta que contém `impulsos_cursos` e execute:
 
    ```powershell
    php -S localhost:8000
    ```
 
-6. Abra `http://localhost:8000/mini_sistema/index.php`.
+6. Abra `http://localhost:8000/impulsos_cursos/index.php`.
 7. Faça login para acessar as páginas de gestão.
 
 Para instalações novas use `database/table.pgsql`. Em bancos existentes execute `database/vincular_alunos_usuarios.sql`; o comando está no [README](README.md#preparar-o-banco-de-dados). Essa migration adiciona o vínculo sem criar contas para alunos antigos ou alterar seus dados, IDs e sequences.
@@ -74,7 +74,7 @@ Abrir o PHP diretamente como arquivo no navegador não executa o código. O serv
 ## 3. Estrutura e fluxo de dados
 
 ```text
-mini_sistema/
+impulsos_cursos/
 ├── index.php                    # Apresentação da empresa
 ├── app/
 │   ├── create.php               # Cadastro de aluno
@@ -142,7 +142,7 @@ Esse diagrama resume as operações protegidas. Algumas páginas carregam a cone
 | `verificar_user.php` | Verifica a sessão. Se `$_SESSION['id']` não existir, redireciona para o login e encerra a execução com `exit()`. |
 | `verificar_admin.php` | Exige login e papel admin. Contas comuns recebem HTTP 403. |
 | `perfil.php` | Busca o aluno usando exclusivamente `$_SESSION['id']`. Exibe seus dados ou informa ausência de vínculo. Senha e CPF não são consultados nessa página. |
-| `logout.php` | Limpa os dados de sessão, destrói a sessão e redireciona para `/mini_sistema/index.php`. |
+| `logout.php` | Limpa os dados de sessão, destrói a sessão e redireciona para `/impulsos_cursos/index.php`. |
 
 ### 4.5. Gestão de alunos
 
@@ -344,7 +344,7 @@ require_once __DIR__ . '/../includes/functions.php';
 Esse caminho é resolvido no computador que executa o PHP. `..` significa subir uma pasta.
 
 ```php
-header('Location: /mini_sistema/index.php');
+header('Location: /impulsos_cursos/index.php');
 exit();
 ```
 
@@ -386,7 +386,7 @@ Este roteiro é uma orientação de teste, não um registro de testes executados
 | Situação | Explicação e verificação |
 | --- | --- |
 | Clicar em Cadastrar, Excluir ou Relatório volta ao login | As páginas exigem `$_SESSION['id']`. Entre antes de usá-las. |
-| O endereço muda, mas a página não abre corretamente | Confira se o servidor foi iniciado na pasta que contém `mini_sistema`. Os links começam com `/mini_sistema/`. |
+| O endereço muda, mas a página não abre corretamente | Confira se o servidor foi iniciado na pasta que contém `impulsos_cursos`. Os links começam com `/impulsos_cursos/`. |
 | Depois de atualizar, continuo com os campos preenchidos | Esse é o fluxo atual. Confira a mensagem de sucesso e volte ao relatório para ver o registro salvo. |
 | O formulário não envia | Confira campos obrigatórios, formato de e-mail e limites numéricos indicados pelo navegador. |
 | Não consigo excluir um ID maior que 255 | O formulário de exclusão atual tem `max="255"`. Isso é um limite do formulário, não uma conclusão sobre a capacidade do banco. |
@@ -441,3 +441,13 @@ Uma ordem prática para entender o código é começar pela tela e acompanhar o 
 ### Exemplo de explicação do projeto
 
 > O sistema gerencia alunos de uma empresa fictícia de cursos. O HTML apresenta os formulários, o CSS define a aparência e o PHP recebe os dados. Para salvar ou buscar registros, o PHP usa PDO para executar consultas no PostgreSQL. A sessão identifica o usuário conectado. O relatório permite acessar a edição de um aluno, e a exclusão pede confirmação antes de apagar o cadastro.
+
+## Recuperação de senha (demonstração local)
+
+Na tela Entrar, o link **Esqueci minha senha** abre a recuperação para contas cujo tipo é exatamente `usuario`. Administradores e futuros funcionários não são elegíveis. A solicitação apresenta a mesma mensagem e opção de continuar para qualquer e-mail; a redefinição bloqueia contas não elegíveis com aviso genérico.
+
+O token é gerado com `random_bytes()`, fica na sessão, dura 10 minutos e é removido após uma troca bem-sucedida. Os dois formulários têm CSRF independente do token de recuperação. O tipo da conta é consultado novamente antes da troca e também exigido no `UPDATE`, que altera somente `usuarios.senha`. A senha precisa ter pelo menos 8 caracteres (até 72 bytes) e é armazenada com `password_hash()`. Não há login automático nem novas tabelas.
+
+**Limitação:** como não há envio de e-mail ou verificação de identidade, o fluxo permite redefinir uma conta comum conhecendo seu e-mail. Por isso, ambas as páginas aceitam somente conexões de loopback (`127.0.0.1` ou `::1`), exibem aviso de demonstração e devem ser usadas com contas de teste. Não use esse mecanismo como recuperação pública em produção. Usuários já autenticados são encaminhados ao perfil sem destruir a sessão.
+
+Para testar no próprio computador: abra o site por `localhost`, saia da conta, clique em Esqueci minha senha, informe o e-mail de uma conta comum de teste, continue e confirme uma nova senha. Entre com a nova senha; a antiga deve falhar. Reabra o mesmo link para conferir que o token não pode ser reutilizado. E-mails inexistentes, administrativos e de funcionários não permitem troca.

@@ -51,7 +51,7 @@ if (!$ehAdmin) {
                 <p><?= $rotulo ?>: <?= htmlspecialchars((string) $aluno[$campo], ENT_QUOTES, 'UTF-8') ?></p>
             <?php endforeach; ?>
             <p>Situação: <?= $aluno['ativo'] ? 'Ativo' : 'Inativo' ?></p>
-        <?php else: ?>
+        <?php elseif (!$ehAdmin): ?>
             <p>Sua conta ainda não está vinculada a um cadastro de aluno.</p>
         <?php endif; ?>
         <?php if (!$ehAdmin): ?>
@@ -64,11 +64,11 @@ if (!$ehAdmin) {
             <?php else: ?>
                 <ul class="profile-course-list">
                     <?php foreach ($cursos as $curso): ?>
-                        <li><a href="/mini_sistema/app/curso.php?id=<?= (int) $curso['id'] ?>"><?= htmlspecialchars((string) $curso['nome'], ENT_QUOTES, 'UTF-8') ?></a><span><?= (int) $curso['carga_horaria'] ?> horas</span></li>
+                        <li><a href="/impulsos_cursos/app/curso.php?id=<?= (int) $curso['id'] ?>"><?= htmlspecialchars((string) $curso['nome'], ENT_QUOTES, 'UTF-8') ?></a><span><?= (int) $curso['carga_horaria'] ?> horas</span></li>
                     <?php endforeach; ?>
                 </ul>
             <?php endif; ?>
-            <a class="report-link" href="/mini_sistema/app/meus_cursos.php">Ver todos os meus cursos</a>
+            <a class="report-link" href="/impulsos_cursos/app/meus_cursos.php">Ver todos os meus cursos</a>
         </section>
         <?php endif; ?>
     </main>

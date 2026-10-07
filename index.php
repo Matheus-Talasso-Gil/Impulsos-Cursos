@@ -21,15 +21,15 @@
                 <h2 id="acesso-title">Comece sua jornada</h2>
                 <p>Para visualizar nossos cursos e realizar inscrições, entre em sua conta ou cadastre-se.</p>
                 <div class="admin-action-links">
-                    <a class="report-link" href="/mini_sistema/login/login.php">Entrar</a>
-                    <a class="report-link" href="/mini_sistema/login/cadastrar.php">Cadastre-se</a>
+                    <a class="report-link" href="/impulsos_cursos/login/login.php">Entrar</a>
+                    <a class="report-link" href="/impulsos_cursos/login/cadastrar.php">Cadastre-se</a>
                 </div>
             </section>
         <?php else: ?>
             <section class="courses" aria-labelledby="courses-title">
                 <h2 id="courses-title">Explore nossos cursos</h2>
                 <p>Confira os cursos disponíveis na plataforma.</p>
-                <a class="report-link" href="/mini_sistema/app/cursos.php">Ver todos os cursos</a>
+                <a class="report-link" href="/impulsos_cursos/app/cursos.php">Ver todos os cursos</a>
             </section>
         <?php endif; ?>
     </main>

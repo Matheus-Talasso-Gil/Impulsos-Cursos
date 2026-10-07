@@ -10,7 +10,7 @@ if (isset($_SESSION['id'])) {
     if (isset($_SESSION['ultima_atividade']) && $agora - $_SESSION['ultima_atividade'] > 1800) {
         $_SESSION = [];
         session_destroy();
-        header('Location: /mini_sistema/login/login.php?expirou=1');
+        header('Location: /impulsos_cursos/login/login.php?expirou=1');
         exit();
     }
 
