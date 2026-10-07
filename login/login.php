@@ -28,16 +28,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | Impulso Cursos</title>
+    <title>Entrar | Impulso Cursos</title>
     <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
 <?php include __DIR__ . '/../includes/header.php'; ?>
 <main class="auth-page">
-    <h1>Login</h1>
+    <h1>Entrar</h1>
     <p>Entre com seu e-mail e senha para acessar sua conta na Impulso Cursos.</p>
     <?php if (($_GET['expirou'] ?? '') === '1'): ?>
-        <p class="message-warning" role="status">Sua sessão expirou por inatividade. Faça login novamente.</p>
+        <p class="message-warning" role="status">Sua sessão expirou por inatividade. Entre novamente.</p>
     <?php endif; ?>
     <?php if (($_GET['cadastro'] ?? '') === 'sucesso'): ?>
         <p class="message-success" role="status">Cadastro realizado. Entre com seu e-mail e senha.</p>

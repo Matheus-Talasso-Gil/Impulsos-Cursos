@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="submit" value="Cadastrar">
             <input type="reset" value="Limpar">
         </form>
-        <p><a href="login.php">Fazer login</a></p>
+        <p><a href="login.php">Entrar</a></p>
     </main>
     <?php include __DIR__ . '/../includes/footer.php' ?>
 </body>

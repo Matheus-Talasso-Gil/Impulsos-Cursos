@@ -3,7 +3,7 @@
     <nav aria-label="Menu principal">
         <?php if (!isset($_SESSION['id'])): ?>
             <div class="nav-account">
-                <a href="/mini_sistema/login/login.php">Login</a>
+                <a href="/mini_sistema/login/login.php">Entrar</a>
                 <a href="/mini_sistema/login/cadastrar.php">Cadastre-se</a>
             </div>
         <?php else: ?>

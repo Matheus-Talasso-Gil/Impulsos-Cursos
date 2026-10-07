@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/session.php';
-require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../login/verificar_admin.php';
+require_once __DIR__ . '/../includes/functions.php';
 function buscarAlunoPorCpf($conexao, $cpf) {
     $cpf = preg_replace('/\D/', '', (string) ($cpf ?? ''));
     if ($cpf === '') return false;

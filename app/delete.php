@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/session.php';
-require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../login/verificar_admin.php';
+require_once __DIR__ . '/../includes/functions.php';
 $_SESSION['exclusao_token'] ??= bin2hex(random_bytes(32)); // cria um token aleatorio na sessao somente se ele ainda nao existir para proteger o formulario
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') unset($_SESSION['exclusao_pendente'], $_SESSION['exclusao_cursos']);
 ?>

@@ -131,7 +131,7 @@ function cadastrar_user($conexao, $email, $senha) // valida o email e cria uma c
         throw new InvalidArgumentException('Informe um e-mail válido e uma senha.');
     }
         if (consultar_user($conexao, $email)) {
-        throw new InvalidArgumentException('Este e-mail já está cadastrado. Faça login com a senha do cadastro mais recente.');
+        throw new InvalidArgumentException('Este e-mail já está cadastrado. Entre com a senha do cadastro mais recente.');
     }
     // Guarda um hash da senha; password_verify confere a senha no login sem precisar recuperá-la.
     $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
