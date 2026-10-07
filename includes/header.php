@@ -20,6 +20,7 @@
                             <a href="/mini_sistema/app/create.php">Cadastrar aluno</a>
                             <a href="/mini_sistema/app/select_w_w.php">Consultar aluno</a>
                             <a href="/mini_sistema/app/select.php">Relatório de alunos</a>
+                            <a href="/mini_sistema/app/alunos_cursos.php">Cursos dos alunos</a>
                             <a href="/mini_sistema/app/delete.php">Excluir aluno</a>
                         </div>
                     </details>
@@ -30,7 +31,6 @@
                             <a href="/mini_sistema/app/vincular_conta.php">Vincular conta a aluno</a>
                         </div>
                     </details>
-                    <a href="/mini_sistema/app/alunos_cursos.php">Cursos dos alunos</a>
                     <a href="/mini_sistema/app/cursos_admin.php">Gerenciar cursos</a>
                 </div>
             <?php else: ?>
