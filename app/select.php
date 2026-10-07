@@ -88,7 +88,7 @@ $alunos = listarAlunos($conexao, $turma, $situacao);
                 </tbody>
             </table>
         </div>
-        <p><a class="report-link" href="admin.php">Vincular conta a aluno</a></p>
+        <p><a class="report-link" href="vincular_conta.php">Vincular conta a aluno</a></p>
     </main>
     <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>

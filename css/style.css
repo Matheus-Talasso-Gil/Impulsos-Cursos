@@ -78,6 +78,13 @@ nav a {
     transition: background-color 180ms ease, color 180ms ease;
 }
 nav a:hover { background: rgba(255, 255, 255, .12); }
+/* Agrupa a gestão de alunos e contas em menus que funcionam com mouse, toque e teclado. */
+nav .nav-group { position: relative; }
+nav .nav-group summary { min-height: 42px; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+nav .nav-group summary:hover, nav .nav-group[open] > summary { background: rgba(255, 255, 255, .12); }
+nav .nav-group summary:focus-visible, nav a:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+nav .nav-dropdown { position: absolute; top: calc(100% + 8px); left: 0; z-index: 10; display: grid; width: 240px; max-width: calc(100vw - 24px); padding: 8px; background: var(--primary-dark); border: 1px solid rgba(255, 255, 255, .2); border-radius: 8px; box-shadow: var(--shadow-md); }
+nav .nav-dropdown a { white-space: normal; }
 nav .nav-start { grid-column: 1; justify-self: start; }
 nav .nav-links { grid-column: 2; justify-self: center; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px; }
 nav .nav-links-admin { display: flex; width: auto; flex-wrap: wrap; gap: 2px; }
@@ -313,6 +320,9 @@ footer h1 { margin: 0; color: var(--text-secondary); font-size: 13px; font-weigh
     nav .nav-account { grid-column: 2; grid-row: 1; }
     nav .nav-links, nav .nav-account { gap: 2px; }
     nav a { min-height: 40px; padding: 7px 9px; font-size: 14px; }
+    nav .nav-group summary { min-height: 40px; padding: 7px 9px; font-size: 14px; }
+    nav .nav-group[open] { flex-basis: 100%; }
+    nav .nav-dropdown { position: static; width: 100%; margin: 4px 0; }
     main { width: min(100% - 24px, 1120px); margin: 24px auto; }
     h1 { font-size: 28px; }
     article { padding: var(--space-5); }
