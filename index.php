@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Impulso Cursos</title>
-    <link rel="stylesheet" href="css/style.css">
+    <?php require __DIR__ . '/includes/stylesheet.php'; ?>
 </head>
 <body>
     <?php include __DIR__ . '/includes/header.php'; ?>
@@ -13,7 +13,7 @@
         <article>
             <h1>Impulso Cursos</h1>
             <h2>Seu próximo passo começa aqui.</h2>
-            <p>A Impulso Cursos é uma empresa fictícia de educação que oferece cursos de informática, inglês e administração. Nossa proposta é ajudar os alunos a desenvolver habilidades para o dia a dia e se preparar para novas oportunidades profissionais.</p>
+            <p>A Impulso Cursos é uma empresa de educação que oferece cursos de informática, inglês e administração. Nossa proposta é ajudar os alunos a desenvolver habilidades para o dia a dia e se preparar para novas oportunidades profissionais.</p>
         </article>
         <?php // O conteúdo interno só é apresentado após a autenticação; os cursos são consultados na página própria. ?>
         <?php if (!isset($_SESSION['id'])): ?>

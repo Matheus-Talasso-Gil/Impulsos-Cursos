@@ -14,7 +14,7 @@ function buscarAlunoPorCpf($conexao, $cpf) {
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consultar aluno</title><link rel="stylesheet" href="../css/style.css">
+    <title>Consultar aluno</title><?php require __DIR__ . '/../includes/stylesheet.php'; ?>
 </head>
 <body>
     <?php include __DIR__ . '/../includes/header.php'; ?><main class="lookup-page">

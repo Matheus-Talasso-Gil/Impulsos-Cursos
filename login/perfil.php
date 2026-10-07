@@ -34,43 +34,66 @@ if (!$ehAdmin) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meu perfil | Impulso Cursos</title>
-    <link rel="stylesheet" href="../css/style.css">
+    <?php require __DIR__ . '/../includes/stylesheet.php'; ?>
 </head>
 <body>
     <?php include __DIR__ . '/../includes/header.php'; ?>
-    <main class="auth-page">
-        <h1>Meu perfil</h1>
-        <p>E-mail: <?= htmlspecialchars((string) ($_SESSION['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
-        <p>Tipo de conta: <?= htmlspecialchars($tipoConta, ENT_QUOTES, 'UTF-8') ?></p>
+    <main class="profile-page">
+        <div class="profile-heading">
+            <p class="profile-eyebrow">MINHA CONTA</p>
+            <h1>Meu perfil</h1>
+            <p>Seus dados e sua jornada na Impulso Cursos, em um só lugar.</p>
+        </div>
+        <section class="profile-account" aria-labelledby="profile-account-title">
+            <div class="profile-avatar" aria-hidden="true">
+                <svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="17" r="8" stroke="currentColor" stroke-width="2.5"/><path d="M9 40c0-9 6-14 15-14s15 5 15 14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+            </div>
+            <div class="profile-identity">
+                <span class="profile-account-type"><?= htmlspecialchars($tipoConta, ENT_QUOTES, 'UTF-8') ?></span>
+                <h2 id="profile-account-title"><?= htmlspecialchars((string) ($aluno['nome'] ?? 'Sua conta'), ENT_QUOTES, 'UTF-8') ?></h2>
+                <p><?= htmlspecialchars((string) ($_SESSION['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
+            </div>
+        </section>
+        <div class="profile-layout<?= $ehAdmin ? ' profile-layout-admin' : '' ?>">
+        <section class="profile-panel" aria-labelledby="profile-details-title">
+            <div class="profile-section-heading">
+                <h2 id="profile-details-title">Dados pessoais</h2>
+                <p>Informações do seu cadastro de aluno.</p>
+            </div>
         <?php if ($erroPerfil !== ''): ?>
             <p class="message-error" role="alert"><?= htmlspecialchars($erroPerfil, ENT_QUOTES, 'UTF-8') ?></p>
         <?php elseif ($aluno): ?>
-            <h2>Cadastro de aluno</h2>
+            <div class="profile-registration-status"><span class="student-status <?= $aluno['ativo'] ? 'is-active' : 'is-inactive' ?>">Cadastro <?= $aluno['ativo'] ? 'ativo' : 'inativo' ?></span></div>
             <?php // As chaves são colunas do banco; os valores são os rótulos exibidos ao usuário. ?>
-            <?php foreach (['id' => 'ID', 'nome' => 'Nome', 'nasc' => 'Data de nascimento', 'turma' => 'Turma', 'email' => 'E-mail do aluno'] as $campo => $rotulo): ?>
-                <p><?= $rotulo ?>: <?= htmlspecialchars((string) $aluno[$campo], ENT_QUOTES, 'UTF-8') ?></p>
+            <dl class="profile-details">
+            <?php foreach (['id' => 'Matrícula', 'nome' => 'Nome completo', 'nasc' => 'Data de nascimento', 'turma' => 'Turma', 'email' => 'E-mail do aluno'] as $campo => $rotulo): ?>
+                <div><dt><?= $rotulo ?></dt><dd><?= htmlspecialchars((string) ($aluno[$campo] ?? ''), ENT_QUOTES, 'UTF-8') ?: 'Não informado' ?></dd></div>
             <?php endforeach; ?>
-            <p>Situação: <?= $aluno['ativo'] ? 'Ativo' : 'Inativo' ?></p>
+            </dl>
         <?php elseif (!$ehAdmin): ?>
-            <p>Sua conta ainda não está vinculada a um cadastro de aluno.</p>
+            <div class="profile-empty"><h3>Cadastro ainda não vinculado</h3><p>Sua conta ainda não está vinculada a um cadastro de aluno. Entre em contato com a administração para vincular seus dados.</p></div>
+        <?php else: ?>
+            <div class="profile-empty"><p>Você está acessando com uma conta administrativa.</p></div>
         <?php endif; ?>
+        </section>
         <?php if (!$ehAdmin): ?>
-        <section class="profile-courses" aria-labelledby="seus-cursos">
-            <h2 id="seus-cursos">Seus cursos</h2>
+        <section class="profile-panel profile-courses" aria-labelledby="seus-cursos">
+            <div class="profile-section-heading"><h2 id="seus-cursos">Seus cursos</h2><p>Continue aprendendo e dando o próximo passo.</p></div>
             <?php if ($erroCursos !== ''): ?>
                 <p class="message-error" role="alert"><?= htmlspecialchars($erroCursos, ENT_QUOTES, 'UTF-8') ?></p>
             <?php elseif (!$cursos): ?>
-                <p>Você ainda não está inscrito em nenhum curso.</p>
+                <div class="profile-empty"><h3>Sua jornada começa aqui</h3><p>Você ainda não está inscrito em nenhum curso.</p></div>
             <?php else: ?>
                 <ul class="profile-course-list">
                     <?php foreach ($cursos as $curso): ?>
-                        <li><a href="/impulsos_cursos/app/curso.php?id=<?= (int) $curso['id'] ?>"><?= htmlspecialchars((string) $curso['nome'], ENT_QUOTES, 'UTF-8') ?></a><span><?= (int) $curso['carga_horaria'] ?> horas</span></li>
+                        <li><a href="/impulsos_cursos/app/curso.php?id=<?= (int) $curso['id'] ?>"><span class="profile-course-name"><?= htmlspecialchars((string) $curso['nome'], ENT_QUOTES, 'UTF-8') ?></span><span class="profile-course-duration"><?= (int) $curso['carga_horaria'] ?> horas de aprendizado</span><span class="profile-course-arrow" aria-hidden="true">&rarr;</span></a></li>
                     <?php endforeach; ?>
                 </ul>
             <?php endif; ?>
             <a class="report-link" href="/impulsos_cursos/app/meus_cursos.php">Ver todos os meus cursos</a>
         </section>
         <?php endif; ?>
+        </div>
     </main>
     <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>
