@@ -188,17 +188,32 @@ O ID original fica na sessão. ID, CPF e nascimento são exibidos sem edição; 
 
 Cancelar abre `delete.php` e limpa as confirmações pendentes. Se as inscrições ou o vínculo mudarem entre requisições, os dados devem ser conferidos novamente. Se o aluno não existir, mostra “Aluno não encontrado”. Após excluir, volta à busca. O campo de ID aceita de 1 a 255 no navegador.
 
-#### `select_w_w.php` — Consulta por ID
+#### `select_w_w.php` — Consulta por ID ou CPF
 
 É a página aberta pelo menu Consultar. Permite buscar por ID entre 1 e 255 ou por CPF normalizado. Reutiliza `read_w_w()` para mostrar o cadastro e oferece um link ao relatório.
 
-#### `admin.php` — Vínculo de conta
+#### `vincular_conta.php` — Vínculo de conta
 
 Abra “Vincular conta a aluno” pelo relatório. Informe o ID de um aluno sem conta e o e-mail de uma conta real disponível. A página mostra aluno e conta para conferência e guarda os dados na sessão. A confirmação exige token CSRF e confere novamente a conta antes de preencher `usuario_id`. Não há vínculo automático por e-mail e cada lado aceita somente um vínculo.
 
 #### `cursos.php` — Inscrições
 
 Lista cursos do banco e permite inscrever a conta identificada por `$_SESSION['id']`. Ignora um `usuario_id` enviado pelo navegador. A constraint do par usuário–curso e o `ON CONFLICT` impedem inscrições duplicadas. Contas sem aluno também podem se inscrever.
+
+### 4.6. Cursos e administração
+
+| Arquivo em `app/` | Funcionamento |
+| --- | --- |
+| `curso.php` | Exibe detalhes pelo ID informado no endereço e permite inscrição com token CSRF. ID inválido recebe HTTP 400; curso inexistente recebe HTTP 404. |
+| `meus_cursos.php` | Consulta somente as inscrições da conta identificada pela sessão; sem inscrições, exibe uma mensagem. |
+| `admin.php` | Painel administrativo com totais de alunos, usuários, cursos e inscrições. |
+| `usuarios.php` | Consulta administrativa de ID, e-mail, tipo e aluno vinculado; não consulta senhas. |
+| `alunos_cursos.php` | Consulta administrativa dos cursos dos alunos. |
+| `cursos_admin.php` | Lista cursos e quantidade de inscritos, com acesso ao cadastro, edição e exclusão. |
+| `curso_create.php` e `curso_update.php` | Exigem admin e token CSRF; validam nome e carga horária positiva no servidor. |
+| `curso_delete.php` | Exige admin, confirmação e token CSRF. Cursos com inscrições não podem ser excluídos; nenhuma inscrição é apagada. |
+
+Catálogo, detalhes e Meus cursos aceitam contas comuns e administradores. As demais páginas desta tabela exigem admin. A inscrição pelo catálogo também valida token CSRF.
 
 ---
 
@@ -376,6 +391,18 @@ Esse endereço é enviado ao navegador. `exit()` impede que o restante da págin
 | Cancelar a segunda confirmação | Cadastro permanece. |
 | Concluir exclusão de aluno de teste com cursos | Somente aluno removido; conta e inscrições preservadas. |
 | Clicar em Sair | Sessão encerrada; páginas protegidas passam a exigir login. |
+| Cadastrar e editar curso como admin | Nome, descrição e carga horária salvos aparecem no catálogo e nos detalhes. |
+| Enviar carga horária zero ou negativa | Validação rejeita a gravação. |
+| Abrir gestão de cursos ou usuários com conta comum | HTTP 403. |
+| Consultar Meus cursos com duas contas diferentes | Cada conta vê somente suas próprias inscrições. |
+| Confirmar exclusão de curso de teste sem inscrições | Curso removido da gestão e do catálogo. |
+| Tentar excluir curso com inscrições | Exclusão bloqueada; curso e inscrições preservados. |
+| Enviar inscrição ou gestão de curso sem token CSRF válido | Solicitação rejeitada sem gravar a alteração. |
+| Recuperar senha de conta comum de teste em localhost | Nova senha funciona; senha antiga falha; não há login automático. |
+| Reutilizar token após troca ou aguardar mais de 10 minutos | Redefinição rejeitada. |
+| Solicitar recuperação para e-mail inexistente ou admin | Solicitação mantém resposta genérica; redefinição não altera nenhuma senha. |
+| Confirmar senhas diferentes ou com menos de 8 caracteres | Redefinição rejeitada sem alterar a senha. |
+| Abrir recuperação por conexão fora de loopback | HTTP 403. |
 
 Este roteiro é uma orientação de teste, não um registro de testes executados durante a documentação.
 
@@ -402,7 +429,7 @@ Este roteiro é uma orientação de teste, não um registro de testes executados
 - Novas senhas são gravadas com `password_hash()` e verificadas com `password_verify()`. Antes de usar, execute `database/ajustar_senha.sql` para ampliar o campo para `VARCHAR(255)`. Senhas antigas em texto precisam ser convertidas ou redefinidas; o login não aceita texto puro armazenado no banco.
 - Parte da validação está apenas no navegador. Os limites de ID também diferem entre as páginas: a exclusão limita o formulário a 255.
 - O cadastro usa uma lista de turmas, mas a edição ainda permite texto livre para turma.
-- Vínculo e exclusão possuem token CSRF; os demais formulários ainda não têm essa proteção.
+- Vínculo, exclusão de aluno, inscrição em cursos, gestão de cursos e recuperação de senha possuem token CSRF. A cobertura não inclui todos os formulários do sistema.
 - A atualização não confere as linhas afetadas antes de mostrar sucesso; exclusão e vínculo conferem.
 - Atualizar a página após um POST pode solicitar o reenvio do formulário, pois não há redirecionamento após todas as operações.
 

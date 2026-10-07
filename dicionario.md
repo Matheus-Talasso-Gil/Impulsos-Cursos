@@ -48,6 +48,8 @@ Guarda as contas usadas para entrar no sistema.
 | descricao | TEXT | — | Sim | Descrição opcional. |
 | carga_horaria | INTEGER | — | Não | Duração em horas. |
 
+O schema atual não possui `CHECK` para exigir `cursos.carga_horaria > 0`; essa validação é feita no servidor pelos formulários administrativos. O campo não possui valor padrão.
+
 ## Inscrições
 
 | Campo | Tipo | Chave | Aceita nulo? | Descrição |
@@ -69,4 +71,8 @@ Guarda as contas usadas para entrar no sistema.
 
 - **PK:** chave primária, identifica cada registro da tabela.
 - **FK:** chave estrangeira, referencia uma chave de outra tabela.
+- **UNIQUE / UK:** exige valores únicos; pode abranger um par de campos, como em `inscricao_unica`.
+- **CHECK:** condição que o banco exige para aceitar uma gravação.
+- **DEFAULT:** valor usado quando a coluna é omitida no cadastro; `alunos.ativo` usa `TRUE` e `usuarios.tipo` usa `usuario`.
+- **SERIAL:** inteiro com geração automática por uma sequence; não garante IDs consecutivos sem lacunas.
 - **Nulo:** ausência de valor no campo; não é o mesmo que texto vazio.

@@ -108,3 +108,64 @@ flowchart TD
 ```
 
 A segunda tela fica em `delete.php`. Excluir o aluno remove seu vínculo e o perfil passa a informar ausência de cadastro.
+
+## Login e logout
+
+```mermaid
+flowchart TD
+    A[Envia e-mail e senha] --> B[Consulta conta e verifica hash]
+    B --> C{Credenciais válidas?}
+    C -->|Não| D[Exibe credenciais inválidas]
+    C -->|Sim| E[Regenera ID e guarda dados da conta na sessão]
+    E --> F[Redireciona ao início]
+    F --> G[Usuário clica em Sair]
+    G --> H[Limpa dados e destrói sessão]
+    H --> I[Redireciona ao início sem autenticação]
+```
+
+O login usa `password_verify()`. Após o logout, páginas protegidas exigem nova autenticação.
+
+## Inscrição em curso
+
+```mermaid
+flowchart TD
+    A[Conta autenticada abre catálogo ou detalhes] --> B[Envia inscrição]
+    B --> C{CSRF, ID e curso válidos?}
+    C -->|Não| D[Rejeita solicitação]
+    C -->|Sim| E[Obtém ID da conta pela sessão]
+    E --> F[Insere com ON CONFLICT]
+    F --> G{Inscrição já existia?}
+    G -->|Sim| H[Informa inscrição existente sem duplicar]
+    G -->|Não| I[Confirma inscrição]
+    H --> J[Meus cursos consulta inscrições da conta]
+    I --> J
+```
+
+A inscrição não depende de cadastro de aluno. O par `(usuario_id, curso_id)` é único no banco.
+
+## Recuperação de senha demonstrativa local
+
+```mermaid
+flowchart TD
+    A[Abre recuperação] --> B{Conexão de loopback?}
+    B -->|Não| C[HTTP 403]
+    B -->|Sim| D{Já está autenticado?}
+    D -->|Sim| E[Redireciona ao perfil]
+    D -->|Não| F[Envia e-mail com CSRF]
+    F --> G{CSRF válido?}
+    G -->|Não| H[Rejeita solicitação]
+    G -->|Sim| I[Invalida recuperação anterior]
+    I --> J{Conta do tipo usuario existe?}
+    J -->|Sim| K[Guarda token com validade de 10 minutos na sessão]
+    J -->|Não| L[Não cria recuperação válida]
+    K --> M[Mostra mensagem e link genéricos]
+    L --> M
+    M --> N[Envia nova senha e confirmação]
+    N --> O{CSRF, token, prazo, tipo e senhas válidos?}
+    O -->|Não| H
+    O -->|Sim| P[Atualiza somente senha com hash e tipo usuario]
+    P --> Q[Remove token após sucesso]
+    Q --> R[Conta deve entrar com a nova senha]
+```
+
+Não há envio de e-mail nem verificação de identidade. Use somente contas de teste no próprio computador. O fluxo não cria tabelas nem realiza login automático.

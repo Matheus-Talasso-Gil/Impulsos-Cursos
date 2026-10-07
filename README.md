@@ -10,6 +10,18 @@ Sistema web fictício de gestão de alunos, desenvolvido com PHP, PDO e PostgreS
 - Validação matemática dos dígitos verificadores do CPF
 - Cadastro e autenticação de usuários com senha protegida por hash
 - Menus e páginas controlados pelo papel da conta
+- Gestão administrativa de cursos e consulta de usuários e vínculos
+- Catálogo, detalhes, inscrição e consulta de Meus cursos
+- Recuperação de senha demonstrativa local para contas comuns de teste
+
+## Documentação do projeto
+
+- [Documentação técnica e roteiro de testes](documentacao.md)
+- [Dicionário de dados](dicionario.md)
+- [Diagramas de entidades e fluxos](diagrama.md)
+- [Briefing do cliente](briefing.md)
+
+A recuperação de senha funciona somente em conexões locais (`127.0.0.1` ou `::1`). Não envia e-mail nem verifica identidade: use apenas contas de teste. O fluxo e suas limitações estão descritos na [documentação](documentacao.md#recuperação-de-senha-demonstração-local).
 
 ## Perfis de acesso
 
@@ -195,6 +207,8 @@ Atualização do quadro Trello com o acompanhamento das tarefas concluídas, em 
 
 ## Estrutura principal
 
+A estrutura abaixo apresenta os arquivos atuais do projeto, incluindo a recuperação de senha, a gestão de cursos, os protótipos e as imagens do Trello até os commits 78–84.
+
 ```text
 impulsos_cursos/
 ├── app/
@@ -233,8 +247,8 @@ impulsos_cursos/
 │   ├── curso_admin_form.php      # formulário compartilhado de gestão de cursos
 │   ├── footer.php                # rodapé compartilhado
 │   ├── functions.php             # funções reutilizadas pelo sistema
-│   ├── header.php                # header adaptado conforme o tipo de usuário
-│   ├── recuperacao_senha.php     # funções de recuperação de senha demonstrativa local
+│   ├── header.php                # cabeçalho e menu conforme o tipo de usuário
+│   ├── recuperacao_senha.php      # funções de recuperação de senha demonstrativa local
 │   └── session.php               # gerenciamento da sessão
 │
 ├── login/
