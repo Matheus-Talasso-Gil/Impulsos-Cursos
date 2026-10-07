@@ -70,6 +70,7 @@ if (session_status() === PHP_SESSION_NONE && is_string($cookieSessao)
     <section aria-labelledby="atualizacoes-politica">
         <h2 id="atualizacoes-politica">8. Atualizações desta política</h2>
         <p>Esta política poderá ser atualizada quando o funcionamento do projeto mudar. A data da última atualização aparece no início desta página.</p>
+        <p>Para conhecer as regras de utilização da plataforma, consulte os <a href="/impulsos_cursos/termos.php">Termos de Uso</a>.</p>
     </section>
 </main>
 <?php include __DIR__ . '/includes/footer.php'; ?>
