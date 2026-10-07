@@ -12,6 +12,8 @@ try {
     );
     $conexao->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    die("Erro ao conectar com o PostgreSQL: " . $e->getMessage());
+    error_log($e->getMessage());
+    http_response_code(503);
+    die("Não foi possível conectar ao banco de dados. Tente novamente mais tarde.");
 }
 ?>

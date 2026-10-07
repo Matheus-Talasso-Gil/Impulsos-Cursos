@@ -142,3 +142,34 @@ function consultar_user($conexao, $email)
     $stmt->bindParam(":email", $email); $stmt->execute(); // consulta o usuário pelo e-mail
     return $stmt->fetch(PDO::FETCH_ASSOC); // retorna o usuário encontrado ou false
 }
+function buscarCursosDoUsuario($conexao)
+{
+    $stmt = $conexao->prepare('SELECT c.id, c.nome, c.descricao, c.carga_horaria FROM inscricoes i JOIN cursos c ON c.id = i.curso_id WHERE i.usuario_id = :usuario_id ORDER BY c.id');
+    $stmt->execute([':usuario_id' => (int) $_SESSION['id']]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+function buscarCursosDisponiveis($conexao)
+{
+    $stmt = $conexao->prepare('SELECT c.id, c.nome, c.descricao, c.carga_horaria, (i.id IS NOT NULL) AS inscrito FROM cursos c LEFT JOIN inscricoes i ON i.curso_id = c.id AND i.usuario_id = :usuario_id ORDER BY c.id');
+    $stmt->execute([':usuario_id' => (int) $_SESSION['id']]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+function buscarCursoPorId($conexao, $id)
+{
+    $stmt = $conexao->prepare('SELECT c.id, c.nome, c.descricao, c.carga_horaria, (i.id IS NOT NULL) AS inscrito FROM cursos c LEFT JOIN inscricoes i ON i.curso_id = c.id AND i.usuario_id = :usuario_id WHERE c.id = :id');
+    $stmt->execute([':usuario_id' => (int) $_SESSION['id'], ':id' => $id]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+function inscreverUsuarioNoCurso($conexao, $cursoId, $token)
+{
+    if (!is_string($token) || !isset($_SESSION['inscricao_token']) || !hash_equals($_SESSION['inscricao_token'], $token)) {
+        throw new InvalidArgumentException('Solicitação inválida. Recarregue a página e tente novamente.');
+    }
+    $cursoId = filter_var($cursoId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 2147483647]]);
+    if ($cursoId === false) throw new InvalidArgumentException('Informe um curso válido.');
+    $stmt = $conexao->prepare('INSERT INTO inscricoes (usuario_id, curso_id) SELECT :usuario_id, id FROM cursos WHERE id = :curso_id ON CONFLICT (usuario_id, curso_id) DO NOTHING');
+    $stmt->execute([':usuario_id' => (int) $_SESSION['id'], ':curso_id' => $cursoId]);
+    if ($stmt->rowCount()) return 'Inscrição realizada com sucesso.';
+    if (!buscarCursoPorId($conexao, $cursoId)) throw new InvalidArgumentException('Curso não encontrado.');
+    return 'Você já está inscrito neste curso.';
+}

@@ -17,10 +17,12 @@
                     <a href="/mini_sistema/app/select.php">Relatório</a>
                     <a href="/mini_sistema/app/delete.php">Excluir aluno</a>
                     <a href="/mini_sistema/app/cursos.php">Cursos</a>
+                    <a href="/mini_sistema/app/meus_cursos.php">Meus cursos</a>
                 </div>
             <?php else: ?>
                 <div class="nav-links">
-                    <a href="/mini_sistema/app/cursos.php">Meus cursos</a>
+                    <a href="/mini_sistema/app/meus_cursos.php">Meus cursos</a>
+                    <a href="/mini_sistema/app/cursos.php">Todos os cursos</a>
                 </div>
             <?php endif; ?>
             <div class="nav-account">

@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/verificar_user.php';
-require_once __DIR__ . '/../database/connect_postgres.php';
+require_once __DIR__ . '/../includes/functions.php';
 $aluno = false;
 $erroPerfil = '';
 try {
@@ -13,6 +13,14 @@ try {
     $erroPerfil = 'Não foi possível consultar seu cadastro de aluno. Entre em contato com o administrador.';
 }
 $tipoConta = ($_SESSION['tipo'] ?? 'usuario') === 'admin' ? 'Administrador' : 'Usuário';
+$cursos = [];
+$erroCursos = '';
+try {
+    $cursos = array_slice(buscarCursosDoUsuario($conexao), 0, 3);
+} catch (PDOException $e) {
+    error_log($e->getMessage());
+    $erroCursos = 'Não foi possível carregar seus cursos. Tente novamente.';
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -39,6 +47,21 @@ $tipoConta = ($_SESSION['tipo'] ?? 'usuario') === 'admin' ? 'Administrador' : 'U
         <?php else: ?>
             <p>Sua conta ainda não está vinculada a um cadastro de aluno.</p>
         <?php endif; ?>
+        <section class="profile-courses" aria-labelledby="seus-cursos">
+            <h2 id="seus-cursos">Seus cursos</h2>
+            <?php if ($erroCursos !== ''): ?>
+                <p class="message-error" role="alert"><?= htmlspecialchars($erroCursos, ENT_QUOTES, 'UTF-8') ?></p>
+            <?php elseif (!$cursos): ?>
+                <p>Você ainda não está inscrito em nenhum curso.</p>
+            <?php else: ?>
+                <ul class="profile-course-list">
+                    <?php foreach ($cursos as $curso): ?>
+                        <li><a href="/mini_sistema/app/curso.php?id=<?= (int) $curso['id'] ?>"><?= htmlspecialchars((string) $curso['nome'], ENT_QUOTES, 'UTF-8') ?></a><span><?= (int) $curso['carga_horaria'] ?> horas</span></li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+            <a class="report-link" href="/mini_sistema/app/meus_cursos.php">Ver todos os meus cursos</a>
+        </section>
     </main>
     <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>

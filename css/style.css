@@ -80,7 +80,7 @@ nav a {
 nav a:hover { background: rgba(255, 255, 255, .12); }
 nav .nav-start { grid-column: 1; justify-self: start; }
 nav .nav-links { grid-column: 2; justify-self: center; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px; }
-nav .nav-links-admin { display: flex; width: auto; flex-wrap: nowrap; gap: 2px; white-space: nowrap; }
+nav .nav-links-admin { display: flex; width: auto; flex-wrap: wrap; gap: 2px; }
 nav .nav-links-admin a { padding-right: 8px; padding-left: 8px; }
 nav .nav-account { grid-column: 3; justify-self: end; display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 4px; }
 nav a[href$="/login/login.php"] { background: var(--primary); }
@@ -111,6 +111,18 @@ article p { max-width: 760px; color: var(--text-secondary); }
 .course-card h3 { margin-bottom: var(--space-2); }
 .course-card p { margin-bottom: var(--space-3); }
 .course-card .course-duration { margin: var(--space-4) 0 0; color: var(--primary-dark); font-weight: 650; }
+.course-card { overflow-wrap: anywhere; }
+.course-actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-5); }
+.course-link { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; }
+.course-enrolled { display: inline-flex; align-items: center; min-height: 36px; padding: 5px 12px; color: var(--success); background: var(--success-bg); border-radius: 6px; font-weight: 650; }
+.course-actions form.course-enrollment { width: auto; max-width: none; margin: 0; padding: 0; background: transparent; border: 0; box-shadow: none; }
+.course-enrollment input[type="submit"] { margin: 0; }
+.course-detail-page { max-width: 760px; }
+.course-description { white-space: pre-line; }
+.profile-courses { margin-top: var(--space-6); padding: var(--space-5); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+.profile-course-list { margin: 0; padding: 0; list-style: none; }
+.profile-course-list li { display: flex; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2); padding: var(--space-3) 0; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.profile-course-list span { color: var(--text-secondary); }
 
 /* forms and controls */
 form:not(.edit-action) {
