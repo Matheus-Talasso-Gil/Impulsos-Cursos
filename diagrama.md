@@ -2,9 +2,13 @@
 
 Os arquivos do CRUD utilizam a tabela `alunos`.
 
-O campo `id` é a chave primária. `alunos.usuario_id` é uma FK opcional e única para `usuarios(id)`.
+O campo `id` é a chave primária. `alunos.usuario_id` é uma FK opcional e única para `usuarios(id)`. Os fluxos usam `graph LR`; somente o banco usa `erDiagram`.
 
 ## Diagrama Entidade-Relacionamento
+
+O DER foi revisado com `database/table.pgsql` e as migrations do projeto. São seis tabelas: `alunos`, `usuarios`, `cursos`, `inscricoes`, `favoritos` e `logs_admin`.
+
+Os pares `(usuario_id, curso_id)` são únicos em `inscricoes` e `favoritos`. Excluir uma conta ou curso remove seus favoritos por cascata; inscrições impedem excluir a conta ou o curso referenciado. `logs_admin.admin_id` referencia `usuarios(id)`; `entidade_id` identifica o alvo da ação, sem FK para aluno ou curso, preservando o histórico após exclusões. Recuperação de senha usa a sessão, sem tabela própria.
 
 ```mermaid
 erDiagram
@@ -22,22 +26,40 @@ erDiagram
     usuarios ||--o{ inscricoes : possui
     cursos ||--o{ inscricoes : recebe
     usuarios {
-        integer id PK
+        serial id PK
         varchar email UK
         varchar senha
         varchar tipo
         timestamp created_at
     }
     cursos {
-        integer id PK
+        serial id PK
         varchar nome
         text descricao
         integer carga_horaria
     }
     inscricoes {
-        integer id PK
+        serial id PK
         integer usuario_id FK
         integer curso_id FK
+    }
+    usuarios ||--o{ favoritos : guarda
+    cursos ||--o{ favoritos : recebe
+    usuarios ||--o{ logs_admin : registra
+    favoritos {
+        serial id PK
+        integer usuario_id FK
+        integer curso_id FK
+        timestamp created_at
+    }
+    logs_admin {
+        serial id PK
+        integer admin_id FK
+        varchar acao
+        varchar entidade
+        integer entidade_id
+        text descricao
+        timestamp created_at
     }
 ```
 
@@ -62,7 +84,6 @@ Busca e mostra um aluno específico pelo ID ou CPF informado.
 Busca um aluno pelo `id` e permite alterar:
 
 - nome
-- turma
 - situação do aluno
 - e-mail
 
@@ -79,15 +100,15 @@ Antes da exclusão, mostra o nome e os cursos do aluno e pede confirmação para
 Visitantes que tentam abrir rotas protegidas são encaminhados ao login. Contas comuns que abrem rotas administrativas recebem HTTP 403 com a página personalizada de acesso negado. Após mais de 30 minutos sem atividade, a próxima requisição encerra a sessão e redireciona ao login com aviso de expiração.
 
 ```mermaid
-flowchart TD
-    A[Requisição protegida] --> B{Existe sessão?}
-    B -->|Não| C[Redireciona ao login]
-    B -->|Sim| D{Rota administrativa?}
-    D -->|Sim| E{Conta admin?}
-    E -->|Não| F[HTTP 403 e página personalizada de acesso negado]
-    E -->|Sim| G[Consulta preparada no PostgreSQL]
-    D -->|Não| G
-    G --> H[Resposta HTML com dados escapados]
+graph LR
+    Requisicao["Requisição protegida"] --> Sessao{"Sessão válida?"}
+    Sessao -->|Não| Login["Login"]
+    Sessao -->|Sim| Rota{"Rota administrativa?"}
+    Rota -->|Sim| Permissao{"Conta admin?"}
+    Permissao -->|Não| Negado["HTTP 403"]
+    Permissao -->|Sim| Banco["Consulta preparada"]
+    Rota -->|Não| Banco
+    Banco --> Resposta["HTML com dados escapados"]
 ```
 
 ## Vínculo e perfil
@@ -99,17 +120,19 @@ O perfil consulta o aluno por `$_SESSION['id']`. Sem vínculo, informa que a con
 ## Exclusão com confirmação
 
 ```mermaid
-flowchart TD
-    A[Admin busca aluno] --> B[Mostra dados para confirmação]
-    B --> C[Valida token e dados pendentes na sessão]
-    C --> D{Conta possui inscrições?}
-    D -->|Não| E[Exclui somente o cadastro de aluno]
-    D -->|Sim| F[Lista cursos e avisa sobre a exclusão]
-    F --> G{Confirma exclusão mesmo com cursos?}
-    G -->|Sim| E
-    G -->|Cancelar| H[Mantém cadastro e limpa confirmação]
-    B -->|Cancelar| H
-    E --> I[Preserva conta e inscrições]
+graph LR
+    Busca["Admin busca aluno"] --> Confirmacao["Confirmar dados do aluno"]
+    Confirmacao -->|Cancelar| Manter["Manter cadastro"]
+    Confirmacao --> Validar{"Token e sessão válidos?"}
+    Validar -->|Não| Erro["Recusar exclusão"]
+    Validar -->|Sim| Inscricoes{"Conta tem inscrições?"}
+    Inscricoes -->|Não| Excluir["Excluir aluno"]
+    Inscricoes -->|Sim| Cursos["Mostrar cursos vinculados"]
+    Cursos --> Segunda{"Confirmar novamente?"}
+    Segunda -->|Sim| Excluir
+    Segunda -->|Não| Manter
+    Excluir --> Resultado["Conta e inscrições preservadas"]
+    Manter --> Limpar["Limpar confirmação"]
 ```
 
 A segunda tela fica em `delete.php`. Excluir o aluno remove seu vínculo e o perfil passa a informar ausência de cadastro.
@@ -117,33 +140,37 @@ A segunda tela fica em `delete.php`. Excluir o aluno remove seu vínculo e o per
 ## Login e logout
 
 ```mermaid
-flowchart TD
-    A[Envia e-mail e senha] --> B[Consulta conta e verifica hash]
-    B --> C{Credenciais válidas?}
-    C -->|Não| D[Exibe credenciais inválidas]
-    C -->|Sim| E[Regenera ID e guarda dados da conta na sessão]
-    E --> F[Redireciona ao início]
-    F --> G[Usuário clica em Sair]
-    G --> H[Limpa dados e destrói sessão]
-    H --> I[Redireciona ao início sem autenticação]
+graph LR
+    Usuario["Usuário"] --> Login["E-mail e senha"]
+    Login --> Validar{"Conta e hash válidos?"}
+    Validar -->|Não| Erro["Erro no login"]
+    Erro --> Login
+    Validar -->|Sim| Sessao["Regenerar e salvar sessão"]
+    Sessao --> Tipo{"Tipo da conta?"}
+    Tipo -->|usuario| Dashboard["Dashboard"]
+    Tipo -->|admin| Painel["Painel admin"]
+    Dashboard --> Logout["Sair"]
+    Painel --> Logout
+    Logout --> Encerrar["Destruir sessão"]
+    Encerrar --> Inicio["Início público"]
 ```
 
-O login usa `password_verify()`. Após o logout, páginas protegidas exigem nova autenticação.
+O login usa `password_verify()` e encaminha contas comuns ao dashboard e administradores ao painel. A sessão guarda ID, e-mail e tipo da conta. Após o logout, páginas protegidas exigem nova autenticação.
 
 ## Inscrição em curso
 
 ```mermaid
-flowchart TD
-    A[Conta autenticada abre catálogo ou detalhes] --> B[Envia inscrição]
-    B --> C{CSRF, ID e curso válidos?}
-    C -->|Não| D[Rejeita solicitação]
-    C -->|Sim| E[Obtém ID da conta pela sessão]
-    E --> F[Insere com ON CONFLICT]
-    F --> G{Inscrição já existia?}
-    G -->|Sim| H[Informa inscrição existente sem duplicar]
-    G -->|Não| I[Confirma inscrição]
-    H --> J[Meus cursos consulta inscrições da conta]
-    I --> J
+graph LR
+    Curso["Catálogo ou detalhes"] --> Inscricao["Solicitar inscrição"]
+    Inscricao --> Validar{"CSRF, ID e curso válidos?"}
+    Validar -->|Não| Erro["Recusar solicitação"]
+    Validar -->|Sim| Conta["Conta da sessão"]
+    Conta --> Banco["Inserir sem duplicar"]
+    Banco --> Duplicidade{"Já estava inscrito?"}
+    Duplicidade -->|Sim| Existe["Inscrição existente"]
+    Duplicidade -->|Não| Sucesso["Inscrição realizada"]
+    Existe --> Meus["Meus cursos"]
+    Sucesso --> Meus
 ```
 
 A inscrição não depende de cadastro de aluno. O par `(usuario_id, curso_id)` é único no banco.
@@ -151,26 +178,35 @@ A inscrição não depende de cadastro de aluno. O par `(usuario_id, curso_id)` 
 ## Recuperação de senha demonstrativa local
 
 ```mermaid
-flowchart TD
-    A[Abre recuperação] --> B{Conexão de loopback?}
-    B -->|Não| C[HTTP 403]
-    B -->|Sim| D{Já está autenticado?}
-    D -->|Sim| E[Redireciona ao perfil]
-    D -->|Não| F[Envia e-mail com CSRF]
-    F --> G{CSRF válido?}
-    G -->|Não| H[Rejeita solicitação]
-    G -->|Sim| I[Invalida recuperação anterior]
-    I --> J{Conta do tipo usuario existe?}
-    J -->|Sim| K[Guarda token com validade de 10 minutos na sessão]
-    J -->|Não| L[Não cria recuperação válida]
-    K --> M[Mostra mensagem e link genéricos]
-    L --> M
-    M --> N[Envia nova senha e confirmação]
-    N --> O{CSRF, token, prazo, tipo e senhas válidos?}
-    O -->|Não| H
-    O -->|Sim| P[Atualiza somente senha com hash e tipo usuario]
-    P --> Q[Remove token após sucesso]
-    Q --> R[Conta deve entrar com a nova senha]
+graph LR
+    Solicitar["Recuperar senha"] --> Local{"Conexão local?"}
+    Local -->|Não| Negado["HTTP 403"]
+    Local -->|Sim| Sessao{"Autenticado?"}
+    Sessao -->|Sim| Perfil["Perfil"]
+    Sessao -->|Não| Email["E-mail e CSRF"]
+    Email --> Validar{"CSRF válido?"}
+    Validar -->|Não| Erro["Recusar solicitação"]
+    Validar -->|Sim| Limpar["Invalidar token anterior"]
+    Limpar --> Conta{"Conta usuario existe?"}
+    Conta -->|Sim| Token["Token na sessão: 10 minutos"]
+    Conta -->|Não| Invalido["Sem token válido"]
+    Token --> Mensagem["Mensagem e link genéricos"]
+    Invalido --> Mensagem
+```
+
+### Redefinição da senha
+
+```mermaid
+graph LR
+    Link["Link de recuperação local"] --> Senha["Nova senha e confirmação"]
+    Senha --> Validar{"CSRF, token, prazo e conta válidos?"}
+    Validar -->|Não| Erro["Recusar redefinição"]
+    Validar -->|Sim| Conferir{"Senhas válidas e iguais?"}
+    Conferir -->|Não| Erro
+    Conferir -->|Sim| Hash["Gravar hash da senha"]
+    Hash --> Limpar["Remover token"]
+    Limpar --> Sucesso["Mostrar sucesso"]
+    Sucesso -->|Voltar para entrar| Login["Login com nova senha"]
 ```
 
 Não há envio de e-mail nem verificação de identidade. Use somente contas de teste no próprio computador. O fluxo não cria tabelas nem realiza login automático.
@@ -182,28 +218,23 @@ Os diagramas abaixo complementam os fluxos técnicos anteriores e representam as
 ### Visitante, cadastro e entrada
 
 ```mermaid
-flowchart TD
-    Visitante["Visitante"] --> Inicio["Página inicial pública"]
-    Inicio --> Escolha{"Entrar ou Cadastre-se?"}
-    Escolha -->|Entrar| Login["Informar e-mail e senha"]
-    Login --> Credenciais{"Conta encontrada e senha válida?"}
-    Credenciais -->|Não| ErroLogin["Mostrar erro no login"]
-    ErroLogin --> Login
-    Credenciais -->|Sim| Sessao["Regenerar sessão e guardar ID, e-mail e tipo"]
-    Sessao --> Autenticado["Página inicial autenticada"]
-    Autenticado --> Tipo{"Tipo da conta?"}
-    Tipo -->|usuario| Usuario["Menu do usuário: cursos e perfil"]
-    Tipo -->|admin| Admin["Menu admin: abrir Painel e gestão"]
-    Escolha -->|Cadastre-se| Cadastro["Informar nome, CPF, nascimento, e-mail e senha"]
-    Cadastro --> Validacao{"CSRF e dados válidos, CPF e e-mail disponíveis?"}
-    Validacao -->|Não| ErroCadastro["Exibir erro e corrigir formulário"]
-    ErroCadastro --> Cadastro
-    Validacao -->|Sim| Criar["Criar conta com returning id e aluno vinculado em transação"]
-    Criar --> Gravou{"Gravação concluída?"}
-    Gravou -->|Não| Rollback["Desfazer transação e mostrar erro"]
-    Rollback --> Cadastro
-    Gravou -->|Sim| Redirecionar["Redirecionar ao login com mensagem de sucesso"]
-    Redirecionar --> Login
+graph LR
+    Visitante["Visitante"] --> Inicio["Início público"]
+    Inicio --> Escolha{"Entrar ou cadastrar?"}
+    Escolha -->|Entrar| Login["Login"]
+    Escolha -->|Cadastrar| Formulario["Formulário de cadastro"]
+    Formulario --> Validar{"CSRF e dados válidos?"}
+    Validar -->|Não| Erro["Corrigir formulário"]
+    Erro --> Formulario
+    Validar -->|Sim| Transacao["Iniciar transação"]
+    Transacao --> Conta["Criar conta usuario"]
+    Conta --> Id["RETURNING usuario id"]
+    Id --> Aluno["Criar aluno vinculado"]
+    Aluno --> Resultado{"Gravação concluída?"}
+    Resultado -->|Não| Rollback["Rollback e erro"]
+    Rollback --> Formulario
+    Resultado -->|Sim| Commit["Commit"]
+    Commit --> Login
 ```
 
 O login encaminha contas comuns ao dashboard e administradores ao painel. O cadastro não autentica automaticamente nem vincula aluno por e-mail. O aluno começa ativo e com turma `Sem turma`.
@@ -211,28 +242,24 @@ O login encaminha contas comuns ao dashboard e administradores ao painel. O cada
 ### Fluxo do usuário
 
 ```mermaid
-flowchart TD
-    Inicio["Usuário no início autenticado"] --> Catalogo["Todos os cursos"]
-    Inicio --> Meus["Meus cursos: listar inscrições da própria conta"]
-    Inicio --> Perfil["Meu perfil: e-mail, tipo e data de criação da conta"]
-    Inicio --> Sair["Logout: limpar e destruir sessão"]
-    Sair --> Publico["Página inicial pública"]
-    Catalogo --> Detalhes["Selecionar curso e ver detalhes"]
+graph LR
+    Dashboard["Dashboard do usuário"] --> Catalogo["Todos os cursos"]
+    Dashboard --> Meus["Meus cursos"]
+    Dashboard --> Favoritos["Favoritos"]
+    Dashboard --> Perfil["Meu perfil"]
+    Dashboard --> Sair["Sair e destruir sessão"]
+    Sair --> Inicio["Início público"]
+    Catalogo --> Detalhes["Detalhes do curso"]
     Meus --> Detalhes
-    Detalhes --> Inscrito{"Já está inscrito?"}
-    Inscrito -->|Sim| Situacao["Exibir Já inscrito"]
-    Inscrito -->|Não| Inscrever["Enviar inscrição pelo catálogo ou detalhes"]
+    Favoritos --> Detalhes
+    Detalhes --> Inscrito{"Já inscrito?"}
+    Inscrito -->|Sim| Situacao["Mostrar inscrição existente"]
+    Inscrito -->|Não| Inscrever["Solicitar inscrição"]
     Inscrever --> Validar{"CSRF, ID e curso válidos?"}
     Validar -->|Não| Erro["Mostrar erro"]
-    Validar -->|Sim| Gravar["Criar inscrição da conta da sessão sem duplicar"]
-    Gravar --> Resultado["Mostrar inscrição realizada ou já existente"]
+    Validar -->|Sim| Banco["Gravar sem duplicar"]
+    Banco --> Resultado["Mostrar resultado"]
     Resultado --> Meus
-    Perfil --> Vinculo{"Existe aluno vinculado à conta?"}
-    Vinculo -->|Sim| Dados["Exibir dados do aluno"]
-    Vinculo -->|Não| SemVinculo["Informar ausência de vínculo"]
-    Dados --> Previa["Exibir prévia de até três cursos e link para Meus cursos"]
-    SemVinculo --> Previa
-    Previa --> Meus
 ```
 
 Cursos e inscrições pertencem à conta e funcionam sem aluno vinculado. O perfil consulta o ID da sessão e não permite escolher outra conta; não exibe senha nem CPF. Admin também pode abrir catálogo, detalhes e Meus cursos: essas rotas exigem autenticação, não um papel específico. Seu perfil não mostra a prévia de cursos.
@@ -240,94 +267,115 @@ Cursos e inscrições pertencem à conta e funcionam sem aluno vinculado. O perf
 ### Cancelamento de inscrição
 
 ```mermaid
-flowchart TD
-    Meus["Meus cursos"] --> Pedir["Solicitar cancelamento de um curso"]
-    Pedir --> Validar{"CSRF, curso e inscrição própria válidos?"}
-    Validar -->|Não| Erro["Exibir erro sem remover inscrição"]
-    Validar -->|Sim| Conferir["Mostrar curso e pedir confirmação"]
-    Conferir --> Decisao{"Confirmar cancelamento?"}
-    Decisao -->|Não| Manter["Manter inscrição e voltar à lista"]
-    Decisao -->|Sim| Revalidar{"CSRF e curso pendente na sessão conferem?"}
-    Revalidar -->|Não| Erro
-    Revalidar -->|Sim| Remover["Remover somente a inscrição da conta autenticada"]
-    Remover --> Lista["Redirecionar para Meus cursos e mostrar resultado"]
+graph LR
+    Meus["Meus cursos"] --> Pedido["Pedir cancelamento"]
+    Pedido --> Validar{"CSRF e inscrição própria válidos?"}
+    Validar -->|Não| Erro["Mostrar erro"]
+    Validar -->|Sim| Curso["Mostrar curso"]
+    Curso --> Confirmar{"Confirmar cancelamento?"}
+    Confirmar -->|Não| Manter["Manter inscrição"]
     Manter --> Meus
-    Lista --> Meus
+    Confirmar -->|Sim| Conferir{"CSRF e curso pendente conferem?"}
+    Conferir -->|Não| Erro
+    Conferir -->|Sim| Remover["Remover inscrição própria"]
+    Remover --> Resultado["Mostrar resultado"]
+    Resultado --> Meus
 ```
 
 ### Fluxo administrativo
 
 ```mermaid
-flowchart TD
-    Admin["Admin no início autenticado"] --> Painel["Abrir painel: totais de alunos, usuários, cursos e inscrições"]
-    Painel --> Consulta["Consultar aluno por ID ou CPF"]
-    Painel --> Relatorio["Relatório de alunos com filtros"]
-    Relatorio --> Editar["Selecionar Editar ou buscar ID em update.php"]
-    Painel --> Excluir["Buscar ID e excluir aluno com confirmação"]
-    Painel --> AlunosCursos["Consultar cursos dos alunos pelas contas vinculadas"]
-    Painel --> Contas["Consultar usuários, tipo, data de criação e vínculo"]
+graph LR
+    Admin["Admin"] --> Painel["Painel admin e totais"]
+    Painel --> Consulta["Consultar aluno"]
+    Painel --> Relatorio["Relatório de alunos"]
+    Relatorio --> Editar["Editar aluno"]
+    Painel --> Excluir["Excluir aluno"]
+    Painel --> Vinculos["Cursos dos alunos"]
+    Painel --> Usuarios["Consultar usuários"]
     Painel --> Cursos["Gerenciar cursos"]
-    Painel --> Catalogo["Todos os cursos"]
-    Admin --> Perfil["Ver próprio perfil"]
-    Admin --> Sair["Logout e retorno ao início público"]
+    Admin --> Historico["Histórico administrativo"]
+    Painel --> Catalogo["Catálogo de cursos"]
+    Admin --> Perfil["Meu perfil"]
+    Admin --> Sair["Sair"]
 ```
 
 Os atalhos do menu administrativo também abrem essas áreas. Consultar usuários é uma listagem; essa tela não oferece edição ou exclusão de contas.
 
-### Consulta e edição de aluno
+### Consulta de aluno
 
 ```mermaid
-flowchart TD
-    Admin["Admin"] --> Consulta["Consultar aluno: informar ID ou CPF"]
-    Consulta --> Encontrado{"Critério válido e aluno encontrado?"}
-    Encontrado -->|Não| Mensagem["Mostrar mensagem e permitir nova busca"]
+graph LR
+    Admin["Admin"] --> Consulta["Informar ID ou CPF"]
+    Consulta --> Validar{"Critério válido?"}
+    Validar -->|Não| Erro["Mostrar erro"]
+    Erro --> Consulta
+    Validar -->|Sim| Banco["Consultar banco"]
+    Banco --> Encontrado{"Aluno encontrado?"}
+    Encontrado -->|Não| Mensagem["Permitir nova busca"]
     Mensagem --> Consulta
     Encontrado -->|Sim| Dados["Mostrar dados do aluno"]
-    Dados --> Voltar["Voltar ao início ou abrir relatório"]
-    Voltar --> Relatorio["Relatório de alunos"]
-    Relatorio --> Selecionar["Selecionar Editar"]
-    Admin --> BuscaEdicao["Buscar aluno por ID em update.php"]
-    BuscaEdicao --> Carregar{"Aluno localizado?"}
-    Selecionar --> Carregar
-    Carregar -->|Não| ErroBusca["Mostrar erro e buscar novamente"]
-    ErroBusca --> BuscaEdicao
-    Carregar -->|Sim| Editar["Editar nome, situação e e-mail"]
-    Editar --> Campos{"Campos obrigatórios e formato de e-mail válidos no formulário?"}
-    Campos -->|Não| Corrigir["Corrigir os campos"]
-    Corrigir --> Editar
-    Campos -->|Sim| Original{"Identidade original recuperada na sessão?"}
-    Original -->|Não| Erro["Mostrar erro sem atualizar"]
-    Original -->|Sim| Atualizar["Atualizar somente dados permitidos no banco"]
-    Atualizar --> Gravou{"Banco aceitou a atualização?"}
-    Gravou -->|Não| Erro
-    Gravou -->|Sim| Sucesso["Mostrar sucesso e recarregar dados do formulário"]
+    Dados --> Voltar["Início ou relatório"]
 ```
 
-ID, CPF, nascimento e vínculo já preenchido são protegidos. A validação dos campos da edição ocorre no formulário do navegador; o servidor recupera a identidade original e grava apenas os campos permitidos. A consulta individual não tem botões diretos de editar/excluir: a edição usa o relatório ou `update.php`, e a exclusão usa a busca de `delete.php`.
+### Edição de aluno
+
+```mermaid
+graph LR
+    Admin["Admin"] --> Busca["Buscar ID ou selecionar no relatório"]
+    Busca --> Encontrado{"Aluno encontrado?"}
+    Encontrado -->|Não| ErroBusca["Mostrar erro de busca"]
+    ErroBusca --> Busca
+    Encontrado -->|Sim| Formulario["Editar campos permitidos"]
+    Formulario --> Campos{"Formulário válido?"}
+    Campos -->|Não| Corrigir["Corrigir campos"]
+    Corrigir --> Formulario
+    Campos -->|Sim| Sessao{"CSRF e identidade na sessão válidos?"}
+    Sessao -->|Não| Erro["Mostrar erro"]
+    Sessao -->|Sim| Servidor{"Nome, e-mail e situação válidos?"}
+    Servidor -->|Não| Erro
+    Servidor -->|Sim| Banco["Atualizar campos permitidos"]
+    Banco --> Gravou{"Banco aceitou?"}
+    Gravou -->|Não| Erro
+    Gravou -->|Sim| Sucesso["Sucesso e recarga dos dados"]
+```
+
+ID, CPF, nascimento, turma e vínculo já preenchido são protegidos. A edição valida os campos no formulário e no servidor, confere CSRF e o aluno selecionado na sessão, recupera a identidade original e grava somente nome, situação e e-mail. A consulta individual não tem botões diretos de editar/excluir: a edição usa o relatório ou `update.php`, e a exclusão usa a busca de `delete.php`.
 
 O fluxo de exclusão de aluno foi preservado em **Exclusão com confirmação**: exige confirmação inicial e, se a conta vinculada tiver inscrições, uma segunda confirmação com a lista de cursos. Cancelar mantém o cadastro; excluir remove somente o aluno e seu vínculo, preservando conta e inscrições.
 
-### Gestão administrativa de cursos
+### Cadastro e edição de cursos
 
 ```mermaid
-flowchart TD
-    Admin["Admin"] --> Lista["Gerenciar cursos: listar cursos e quantidade de inscritos"]
-    Lista --> Acao{"Escolher ação"}
-    Acao -->|Cadastrar| Novo["Informar nome, descrição e carga horária"]
-    Acao -->|Editar| Editar["Selecionar curso e alterar dados permitidos"]
-    Novo --> Validar{"CSRF, nome e carga horária válidos?"}
-    Editar --> Validar
-    Validar -->|Não| ErroDados["Exibir erro e corrigir formulário"]
-    Validar -->|Sim| Gravar["Inserir ou atualizar curso e mostrar resultado"]
-    Acao -->|Excluir| Curso["Carregar curso e quantidade de inscrições"]
-    Curso --> Inscricoes{"Curso possui inscrições?"}
-    Inscricoes -->|Sim| Bloquear["Bloquear exclusão e preservar inscrições"]
+graph LR
+    Admin["Admin"] --> Lista["Listar cursos e inscritos"]
+    Lista --> Acao{"Criar ou editar?"}
+    Acao -->|Criar| Novo["Novo curso"]
+    Acao -->|Editar| Editar["Editar curso"]
+    Novo --> Dados["Nome, descrição e carga horária"]
+    Editar --> Dados
+    Dados --> Validar{"CSRF e dados válidos?"}
+    Validar -->|Não| Erro["Corrigir formulário"]
+    Validar -->|Sim| Banco["Inserir ou atualizar"]
+    Banco --> Gravou{"Gravação concluída?"}
+    Gravou -->|Não| Erro
+    Gravou -->|Sim| Resultado["Mostrar sucesso"]
+```
+
+### Exclusão de curso
+
+```mermaid
+graph LR
+    Lista["Lista de cursos"] --> Curso["Carregar curso e inscrições"]
+    Curso --> Inscricoes{"Tem inscrições?"}
+    Inscricoes -->|Sim| Bloquear["Bloquear exclusão"]
     Inscricoes -->|Não| Confirmar{"Confirmar exclusão?"}
     Confirmar -->|Não| Lista
-    Confirmar -->|Sim| Revalidar{"CSRF válido e curso continua sem inscrições?"}
-    Revalidar -->|Não| ErroExclusao["Recusar exclusão e mostrar motivo"]
-    Revalidar -->|Sim| Excluir["Excluir curso e retornar à lista com sucesso"]
-    Excluir --> Lista
+    Confirmar -->|Sim| Validar{"CSRF válido e sem inscrições?"}
+    Validar -->|Não| Erro["Recusar e mostrar motivo"]
+    Validar -->|Sim| Banco["Excluir curso"]
+    Banco --> Resultado["Resultado e retorno à lista"]
+    Resultado --> Lista
 ```
 
 O banco também impede excluir cursos com inscrições, inclusive se surgir uma inscrição durante a confirmação. Cadastro e edição apresentam erro quando a gravação não pode ser concluída.
@@ -336,94 +384,128 @@ O banco também impede excluir cursos com inscrições, inclusive se surgir uma 
 
 O diagrama técnico em **Recuperação de senha demonstrativa local** integra o fluxo geral. O acesso começa no link Esqueci minha senha do login. Apenas contas `tipo = usuario` podem redefinir a senha, em conexão local e na mesma sessão do navegador. Uma conta não elegível recebe a mesma mensagem e link genéricos, mas não uma recuperação válida. O token dura dez minutos; a redefinição valida token, prazo, tipo da conta, CSRF e confirmação da nova senha, grava `password_hash()` e invalida o token após sucesso. A tela oferece Voltar para entrar; não redireciona automaticamente nem autentica a conta.
 
-## Diagrama de casos de uso
 
-Representação conceitual em `flowchart LR`: os atores ficam fora dos grupos de funções; as linhas sem seta ligam atores a casos de uso e as setas pontilhadas mostram decomposição ou navegação. Não representam herança de permissões nem relações UML formais.
+### Favoritos
 
 ```mermaid
-flowchart LR
-    Visitante["Visitante"]
-    Usuario["Usuário"]
-    Admin["Admin"]
+graph LR
+    Curso["Catálogo ou detalhes"] --> Favoritar["Favoritar curso"]
+    Favoritar --> Validar{"Sessão, CSRF e ID válidos?"}
+    Validar -->|Não| Erro["Mostrar erro"]
+    Validar -->|Sim| Verificar{"Curso existe?"}
+    Verificar -->|Não| Erro
+    Verificar -->|Sim| Salvar["Salvar sem duplicar"]
+    Salvar --> Resultado["Favoritado ou já existente"]
+    Resultado --> Favoritos["Favoritos da conta"]
+    Favoritos --> Remover["Remover favorito"]
+    Remover --> Conferir{"Sessão, CSRF e curso válidos?"}
+    Conferir -->|Não| Erro
+    Conferir -->|Sim| Banco["Remover somente favorito próprio"]
+    Banco --> Favoritos
+```
 
-    subgraph Publico["Área pública"]
-        Inicial(["Visualizar página inicial pública"])
-    end
-    subgraph Autenticacao["Autenticação"]
-        Login(["Fazer login"])
-        Cadastro(["Criar conta usuario e cadastro de aluno"])
-        Recuperar(["Recuperar senha de conta usuario - demonstração local"])
-        Logout(["Fazer logout"])
-    end
-    subgraph Cursos["Cursos da própria conta"]
-        InicioConta(["Visualizar página inicial autenticada"])
-        Catalogo(["Ver todos os cursos"])
-        Detalhes(["Ver detalhes do curso"])
-        Inscrever(["Inscrever-se em curso"])
-        Meus(["Ver Meus cursos"])
-        Cancelar(["Cancelar própria inscrição com confirmação"])
-    end
-    subgraph Perfil["Perfil próprio"]
-        MeuPerfil(["Ver próprio perfil"])
-        DadosProprios(["Consultar dados próprios da conta e aluno vinculado"])
-    end
-    subgraph Administracao["Administração - acesso exclusivo do admin"]
-        Painel(["Acessar painel administrativo"])
-        Consultar(["Consultar aluno por ID ou CPF"])
-        Listar(["Listar alunos e filtrar relatório"])
-        EditarAluno(["Editar dados permitidos do aluno"])
-        ExcluirAluno(["Excluir aluno com confirmações"])
-        CursosAlunos(["Visualizar cursos dos alunos"])
-        Contas(["Consultar usuários cadastrados"])
-        Gerenciar(["Gerenciar e listar cursos"])
-        CriarCurso(["Cadastrar curso"])
-        EditarCurso(["Editar curso"])
-        ExcluirCurso(["Excluir curso sem inscrições"])
-    end
+Favoritos não criam inscrições. A conta vem da sessão; a remoção não afeta os favoritos de outras contas. Usuários e administradores podem acessar essas rotas, embora o atalho Favoritos apareça apenas no menu comum.
 
-    Visitante --- Inicial
-    Visitante --- Login
-    Visitante --- Cadastro
-    Visitante --- Recuperar
-    Usuario --- Login
-    Usuario --- Logout
-    Usuario --- InicioConta
-    Usuario --- Catalogo
-    Usuario --- Detalhes
-    Usuario --- Inscrever
-    Usuario --- Meus
-    Usuario --- Cancelar
-    Usuario --- MeuPerfil
-    Usuario --- DadosProprios
-    Admin --- Login
-    Admin --- Logout
-    Admin --- InicioConta
-    Admin --- Catalogo
-    Admin --- Detalhes
-    Admin --- Inscrever
-    Admin --- Meus
+### Perfil próprio
+
+```mermaid
+graph LR
+    Perfil["Meu perfil"] --> Sessao["ID da sessão"]
+    Sessao --> Usuario["Dados da própria conta"]
+    Usuario --> Vinculo{"Aluno vinculado?"}
+    Vinculo -->|Sim| Aluno["Dados do aluno e cursos"]
+    Vinculo -->|Não| Ausencia["Informar ausência de vínculo"]
+    Aluno --> Tipo{"Conta comum?"}
+    Ausencia --> Tipo
+    Tipo -->|Sim| Cursos["Prévia de até três cursos"]
+    Tipo -->|Não| Resultado["Exibir perfil"]
+    Cursos --> Resultado
+    Cursos --> Meus["Meus cursos"]
+```
+
+O perfil exibe erros quando não consegue consultar o aluno ou os cursos. A prévia de cursos aparece somente para a conta comum e funciona mesmo sem aluno vinculado.
+
+### Histórico administrativo
+
+```mermaid
+graph LR
+    Admin["Admin"] --> Acao["Criar curso ou editar/excluir aluno ou curso"]
+    Acao --> Resultado{"Ação principal funcionou?"}
+    Resultado -->|Não| Erro["Erro sem log de sucesso"]
+    Resultado -->|Sim| Log["Registrar em logs_admin"]
+    Log --> Gravou{"Log gravado?"}
+    Gravou -->|Sim| Historico["Histórico administrativo"]
+    Gravou -->|Não| Preservar["Preservar ação e registrar falha no servidor"]
+    Admin --> Historico
+    Historico --> Lista["Até 100 registros recentes"]
+```
+
+O histórico registra somente ações administrativas implementadas: criação, edição e exclusão de cursos e edição/exclusão de alunos. O cadastro público não gera log administrativo. A listagem associa cada log ao e-mail do administrador, em ordem decrescente de data e ID; falhas do log não desfazem a ação principal.
+
+### Relatório de alunos
+
+```mermaid
+graph LR
+    Admin["Admin"] --> Relatorio["Relatório e filtros"]
+    Relatorio --> Alunos["Consultar alunos"]
+    Alunos --> Conta["Vínculo com usuarios por usuario_id"]
+    Conta --> Inscricoes["Inscrições da conta"]
+    Inscricoes --> Cursos["Nomes dos cursos"]
+    Cursos --> Agrupar["Agrupar nomes por aluno"]
+    Agrupar --> Resultado["Uma linha por aluno"]
+    Resultado --> Editar["Editar aluno"]
+```
+
+`listarAlunos()` parte de `alunos` e usa o ID da conta vinculada para consultar inscrições e cursos; não faz JOIN com `usuarios`. A subconsulta com `STRING_AGG` mantém uma linha por aluno, inclusive sem vínculo ou inscrições, exibindo `Sem curso`. Os filtros de curso e situação são opcionais; o filtro por curso mantém os demais cursos na mesma linha. A ordem é por ID crescente.
+
+## Diagrama de casos de uso
+
+Representação conceitual em `graph LR`: os atores ficam fora dos grupos de funções; as linhas sem seta ligam atores a casos de uso e as setas pontilhadas mostram decomposição ou navegação. Não representam herança de permissões nem relações UML formais.
+
+```mermaid
+graph LR
+    Visitante["Visitante"] --- Publico["Início público"]
+    Visitante --- Login["Login"]
+    Visitante --- Cadastro["Cadastro vinculado"]
+    Visitante --- Recuperar["Recuperação local"]
+    Usuario["Usuário"] --- Login
+    Usuario --- Dashboard["Dashboard"]
+    Usuario --- Cursos["Catálogo e detalhes"]
+    Usuario --- Inscricoes["Inscrição e Meus cursos"]
+    Usuario --- Cancelar["Cancelar inscrição própria"]
+    Usuario --- Favoritos["Salvar e remover favoritos"]
+    Usuario --- Perfil["Perfil e dados próprios"]
+    Usuario --- Logout["Logout"]
+    Admin["Admin"] --- Login
+    Admin --- Publico
+    Admin --- Cursos
+    Admin --- Inscricoes
     Admin --- Cancelar
-    Admin --- MeuPerfil
-    Admin --- DadosProprios
-    Admin --- Painel
-    Admin --- Consultar
-    Admin --- Listar
-    Admin --- EditarAluno
-    Admin --- ExcluirAluno
-    Admin --- CursosAlunos
-    Admin --- Contas
-    Admin --- Gerenciar
-    Admin --- CriarCurso
-    Admin --- EditarCurso
-    Admin --- ExcluirCurso
-    Gerenciar -.-> CriarCurso
-    Gerenciar -.-> EditarCurso
-    Gerenciar -.-> ExcluirCurso
-    MeuPerfil -.-> DadosProprios
+    Admin --- Favoritos
+    Admin --- Perfil
+    Admin --- Logout
+```
+
+### Casos de uso administrativos
+
+```mermaid
+graph LR
+    Admin["Admin"] --- Painel["Painel e totais"]
+    Admin --- Consulta["Consultar aluno"]
+    Admin --- Relatorio["Relatório e filtros"]
+    Admin --- Edicao["Editar aluno"]
+    Admin --- Exclusao["Excluir aluno"]
+    Admin --- Vinculos["Cursos dos alunos"]
+    Admin --- Usuarios["Consultar usuários"]
+    Admin --- Historico["Histórico administrativo"]
+    Admin --- Cursos["Listar e gerenciar cursos"]
+    Cursos -.-> Criar["Criar curso"]
+    Cursos -.-> Editar["Editar curso"]
+    Cursos -.-> Excluir["Excluir curso sem inscrições"]
 ```
 
 - **Visitante:** pessoa sem autenticação, com acesso à página pública, login, cadastro e solicitação de recuperação local para uma conta comum.
-- **Usuário:** conta comum autenticada, com acesso aos cursos, inscrições, cancelamento e próprio perfil. Não gerencia alunos, contas, vínculos ou cursos administrativos.
-- **Admin:** conta administrativa responsável por consultas e gestão de alunos e cursos, com acesso ao próprio perfil. Também pode usar as rotas de cursos da própria conta; não participa da recuperação de senha.
+- **Usuário:** conta comum autenticada, com acesso ao dashboard, cursos, inscrições, cancelamento, favoritos e próprio perfil. Não gerencia alunos, contas, vínculos ou cursos administrativos.
+- **Admin:** conta administrativa responsável por consultas e gestão de alunos e cursos, com acesso ao próprio perfil. Também pode consultar o histórico e usar as rotas de cursos e favoritos da própria conta; não participa da recuperação de senha.
 
 Ver perfil e consultar dados próprios são aspectos da mesma página, não telas distintas. A criação de aluno ocorre no cadastro público com vínculo automático na mesma transação. A exclusão de aluno preserva a conta e suas inscrições; a exclusão de curso é bloqueada se houver inscrições.
