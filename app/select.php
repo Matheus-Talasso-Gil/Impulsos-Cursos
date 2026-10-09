@@ -2,12 +2,16 @@
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../login/verificar_admin.php';
 require_once __DIR__ . '/../includes/functions.php';
-// Aceita apenas filtros textuais e valores previstos; entradas inesperadas voltam ao filtro padrão.
+// descarta filtros inesperados antes de montar a consulta
 $turmas = ['INF-01' => 'Informática Básica', 'ING-01' => 'Inglês', 'ADM-01' => 'Administração'];
 $turma = is_string($_GET['turma'] ?? null) ? $_GET['turma'] : '';
-if ($turma !== '' && !isset($turmas[$turma])) $turma = '';
+if ($turma !== '' && !isset($turmas[$turma])) {
+    $turma = '';
+}
 $situacao = $_GET['situacao'] ?? 'todas';
-if (!is_string($situacao) || !in_array($situacao, ['todas', 'ativo', 'inativo'], true)) $situacao = 'todas';
+if (!is_string($situacao) || !in_array($situacao, ['todas', 'ativo', 'inativo'], true)) {
+    $situacao = 'todas';
+}
 $filtrosAtivos = $turma !== '' || $situacao !== 'todas';
 $alunos = [];
 $erro = '';

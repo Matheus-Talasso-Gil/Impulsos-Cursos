@@ -1,6 +1,9 @@
 <?php
-// Regressões de edição e validação; somente tabelas temporárias, removidas no rollback.
-if (PHP_SAPI !== 'cli') { http_response_code(404); exit(); }
+// regressoes de edicao e validacao somente tabelas temporarias removidas no rollback
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit();
+}
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/session.php';
 $_SESSION = ['id' => 1, 'tipo' => 'admin', 'edicao_token' => 'token-teste'];
@@ -8,12 +11,15 @@ $_SERVER['SCRIPT_NAME'] = '/impulsos_cursos/app/update.php';
 $_SERVER['REQUEST_METHOD'] = 'POST';
 function conferirAluno($condicao, $mensagem)
 {
-    if (!$condicao) throw new RuntimeException($mensagem);
+    if (!$condicao) {
+        throw new RuntimeException($mensagem);
+    }
 }
 function renderizarEdicaoAluno(array $post)
 {
     global $conexao;
     $_POST = $post;
+    // captura o html da edicao para conferir as protecoes sem mostrar a pagina
     ob_start();
     try {
         include __DIR__ . '/../app/update.php';
@@ -53,7 +59,7 @@ try {
             cadastrar_user($conexao, 'validacao@example.com', $senha);
             throw new RuntimeException('Senha inválida foi aceita.');
         } catch (InvalidArgumentException $e) {
-            // A validação deve ocorrer antes de qualquer INSERT.
+            // a validacao deve ocorrer antes de qualquer insert
         }
     }
     echo 'OK: IDs acima de 255, CSRF, abas diferentes, entradas inválidas, edição, identidade preservada, CPF com pontuação e limites de senha.' . PHP_EOL;

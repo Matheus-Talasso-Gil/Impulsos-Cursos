@@ -6,32 +6,42 @@ $cursos = [];
 $erro = '';
 $mensagem = $_SESSION['cancelamento_mensagem'] ?? '';
 unset($_SESSION['cancelamento_mensagem']);
+// mantem um token imprevisivel para proteger o cancelamento contra csrf
 $_SESSION['cancelamento_token'] ??= bin2hex(random_bytes(32));
 $cursoCancelar = false;
 try {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $token = $_POST['token'] ?? null;
+        // compara os tokens de forma segura antes de processar o cancelamento
         if (!is_string($token) || !hash_equals($_SESSION['cancelamento_token'], $token)) {
             throw new InvalidArgumentException('Solicitação inválida. Recarregue a página e tente novamente.');
         }
         $id = filter_var($_POST['curso_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 2147483647]]);
-        if ($id === false) throw new InvalidArgumentException('Informe um curso válido.');
+        if ($id === false) {
+            throw new InvalidArgumentException('Informe um curso válido.');
+        }
         if (($_POST['acao'] ?? '') === 'confirmar') {
+            // exige que o curso confirmado seja o mesmo conferido na etapa anterior
             if (($_SESSION['cancelamento_pendente'] ?? null) !== $id) {
                 throw new InvalidArgumentException('Confira o curso antes de confirmar o cancelamento.');
             }
-            // O ID da conta vem somente da sessão: nunca remove inscrições de outra conta.
+            // o id da conta vem somente da sessao nunca remove inscricoes de outra conta
             $stmt = $conexao->prepare('DELETE FROM inscricoes WHERE usuario_id = :usuario_id AND curso_id = :curso_id');
             $stmt->execute([':usuario_id' => (int) $_SESSION['id'], ':curso_id' => $id]);
             $_SESSION['cancelamento_mensagem'] = $stmt->rowCount() ? 'Inscrição cancelada com sucesso.' : 'Esta inscrição já não está disponível.';
             unset($_SESSION['cancelamento_pendente']);
+            // renova o token apos cancelar para invalidar formularios anteriores
             $_SESSION['cancelamento_token'] = bin2hex(random_bytes(32));
             header('Location: meus_cursos.php');
             exit();
         }
-        if (($_POST['acao'] ?? '') !== 'cancelar') throw new InvalidArgumentException('Solicitação inválida.');
+        if (($_POST['acao'] ?? '') !== 'cancelar') {
+            throw new InvalidArgumentException('Solicitação inválida.');
+        }
         $cursoCancelar = buscarCursoPorId($conexao, $id);
-        if (!$cursoCancelar || !$cursoCancelar['inscrito']) throw new InvalidArgumentException('Você não está inscrito neste curso.');
+        if (!$cursoCancelar || !$cursoCancelar['inscrito']) {
+            throw new InvalidArgumentException('Você não está inscrito neste curso.');
+        }
         $_SESSION['cancelamento_pendente'] = $id;
     } else {
         unset($_SESSION['cancelamento_pendente']);

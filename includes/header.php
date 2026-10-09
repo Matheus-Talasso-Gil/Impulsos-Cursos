@@ -1,6 +1,8 @@
 <?php
-// A política pública lê a sessão antes do HTML, sem alterar o fluxo das demais páginas.
-if (!($headerSessaoSomenteLeitura ?? false)) require_once __DIR__ . '/session.php';
+// a politica publica le a sessao antes do html sem alterar o fluxo das demais paginas
+if (!($headerSessaoSomenteLeitura ?? false)) {
+    require_once __DIR__ . '/session.php';
+}
 ?>
 <header>
     <nav aria-label="Menu principal">
@@ -16,7 +18,7 @@ if (!($headerSessaoSomenteLeitura ?? false)) require_once __DIR__ . '/session.ph
             <?php if (($_SESSION['tipo'] ?? 'usuario') === 'admin'): ?>
                 <div class="nav-links nav-links-admin">
                     <a href="/impulsos_cursos/app/admin.php">Painel</a>
-                    <?php // Agrupa os atalhos administrativos sem JavaScript; cada link abre sua própria página. ?>
+                    <?php ?>
                     <details class="nav-group">
                         <summary>Alunos</summary>
                         <div class="nav-dropdown">

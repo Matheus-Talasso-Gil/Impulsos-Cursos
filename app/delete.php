@@ -2,8 +2,11 @@
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../login/verificar_admin.php';
 require_once __DIR__ . '/../includes/functions.php';
-$_SESSION['exclusao_token'] ??= bin2hex(random_bytes(32)); // cria um token aleatorio na sessao somente se ele ainda nao existir para proteger o formulario
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') unset($_SESSION['exclusao_pendente'], $_SESSION['exclusao_cursos']);
+$_SESSION['exclusao_token'] ??= bin2hex(random_bytes(32)); // mantem um token aleatorio na sessao para proteger o formulario contra csrf
+// descarta confirmacoes anteriores ao abrir a pagina novamente
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    unset($_SESSION['exclusao_pendente'], $_SESSION['exclusao_cursos']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -37,15 +40,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['id'])) {
             $cursos = $stmt->fetchAll(PDO::FETCH_ASSOC);
             $dados = ['id' => $id, 'usuario_id' => $aluno['usuario_id'], 'cursos' => array_column($cursos, 'id')];
             if (isset($_POST['confirmar']) || isset($_POST['confirmar_cursos'])) {
-                if (!is_string($_POST['token'] ?? null) || !hash_equals($_SESSION['exclusao_token'], $_POST['token'])) { // rejeita tokens ausentes ou diferentes do token da sessao para impedir solicitacoes forjadas
+                if (!is_string($_POST['token'] ?? null) || !hash_equals($_SESSION['exclusao_token'], $_POST['token'])) { // compara os tokens de forma segura para impedir solicitacoes forjadas
                     echo '<p class="message-error" role="alert">Solicitação inválida. Recarregue a página.</p>';
                 } elseif (($_SESSION['exclusao_pendente'] ?? null) !== $dados) {
+                    // exige nova conferencia se o aluno ou suas inscricoes mudaram
                     echo '<p class="message-warning" role="alert">Confira os dados atualizados antes de confirmar.</p>';
                 } elseif ($cursos && (!isset($_POST['confirmar_cursos']) || ($_SESSION['exclusao_cursos'] ?? null) !== $dados)) {
+                    // exige confirmacao adicional quando o aluno possui inscricoes
                     $confirmacaoCursos = true;
                     $_SESSION['exclusao_cursos'] = $dados; // guarda os dados conferidos na sessao para usar na proxima etapa
                 } else {
                     try {
+                        // exclui somente o aluno e preserva a conta e suas inscricoes
                         apagar($conexao, $id);
                         $aluno = false;
                         unset($_SESSION['exclusao_pendente'], $_SESSION['exclusao_cursos']);
@@ -55,8 +61,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['id'])) {
                     }
                 }
             }
-            if (!isset($_POST['confirmar']) && !isset($_POST['confirmar_cursos'])) unset($_SESSION['exclusao_cursos']);
-            if ($aluno) $_SESSION['exclusao_pendente'] = $dados;
+            if (!isset($_POST['confirmar']) && !isset($_POST['confirmar_cursos'])) {
+                unset($_SESSION['exclusao_cursos']);
+            }
+            if ($aluno) {
+                $_SESSION['exclusao_pendente'] = $dados;
+            }
         }
     } catch (PDOException $e) {
         error_log($e->getMessage());

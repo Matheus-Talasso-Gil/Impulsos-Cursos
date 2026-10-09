@@ -5,7 +5,7 @@ require_once __DIR__ . '/../includes/functions.php';
 $cursos = [];
 $erro = '';
 try {
-    // LEFT JOIN inclui cursos sem inscrições; COUNT(i.id) retorna zero nesses casos.
+    // conta apenas inscricoes existentes e mantem cursos sem inscritos
     $cursos = $conexao->query('SELECT c.id, c.nome, c.descricao, c.carga_horaria, COUNT(i.id) AS inscritos FROM cursos c LEFT JOIN inscricoes i ON i.curso_id = c.id GROUP BY c.id ORDER BY c.id')->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log($e->getMessage());

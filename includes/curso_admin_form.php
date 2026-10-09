@@ -2,6 +2,7 @@
 require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/../login/verificar_admin.php';
 require_once __DIR__ . '/functions.php';
+// mantem um token imprevisivel para proteger o cadastro e a edicao de cursos
 $_SESSION['curso_admin_token'] ??= bin2hex(random_bytes(32));
 $erro = '';
 $mensagem = '';
@@ -9,7 +10,7 @@ $curso = ['nome' => '', 'descricao' => '', 'carga_horaria' => ''];
 $podeEditar = true;
 $id = false;
 if ($editarCurso) {
-    // O ID vem da URL apenas para localizar o registro; o UPDATE nunca altera essa coluna.
+    // usa o id apenas para localizar o curso sem alterar sua identidade
     $id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 2147483647]]);
     try {
         $curso = $id !== false ? buscarCursoAdmin($conexao, $id) : false;
@@ -25,7 +26,7 @@ if ($editarCurso) {
     }
 }
 if ($podeEditar && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Preserva os campos digitados se houver erro, aceitando apenas valores textuais para o formulário.
+    // preserva os campos textuais para permitir correcao apos um erro
     foreach (['nome', 'descricao', 'carga_horaria'] as $campo) {
         $curso[$campo] = is_string($_POST[$campo] ?? null) ? $_POST[$campo] : '';
     }
@@ -35,13 +36,15 @@ if ($podeEditar && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($editarCurso) {
             $stmt = $conexao->prepare('UPDATE cursos SET nome = :nome, descricao = :descricao, carga_horaria = :carga_horaria WHERE id = :id');
             $stmt->execute($dados + ['id' => $id]);
-            if (!$stmt->rowCount()) throw new InvalidArgumentException('Curso não encontrado.');
+            if (!$stmt->rowCount()) {
+                throw new InvalidArgumentException('Curso não encontrado.');
+            }
             $mensagem = 'Curso atualizado com sucesso.';
             $curso = $dados;
         } else {
             $stmt = $conexao->prepare('INSERT INTO cursos (nome, descricao, carga_horaria) VALUES (:nome, :descricao, :carga_horaria)');
             $stmt->execute($dados);
-            // Redirecionamento após criar evita duplicação ao atualizar a página.
+            // redirecionamento apos criar evita duplicacao ao atualizar a pagina
             header('Location: curso_create.php?sucesso=1');
             exit();
         }
@@ -52,7 +55,9 @@ if ($podeEditar && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $erro = 'Não foi possível salvar o curso. Tente novamente.';
     }
 }
-if (!$editarCurso && ($_GET['sucesso'] ?? '') === '1') $mensagem = 'Curso cadastrado com sucesso.';
+if (!$editarCurso && ($_GET['sucesso'] ?? '') === '1') {
+    $mensagem = 'Curso cadastrado com sucesso.';
+}
 $titulo = $editarCurso ? 'Editar curso' : 'Cadastrar curso';
 ?>
 <!DOCTYPE html>

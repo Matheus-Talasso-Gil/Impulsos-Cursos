@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../login/verificar_admin.php';
 require_once __DIR__ . '/../includes/functions.php';
+// mantem um token imprevisivel para proteger a edicao contra csrf
 $_SESSION['edicao_token'] ??= bin2hex(random_bytes(32));
 ?>
 <!DOCTYPE html>
@@ -17,21 +18,30 @@ $_SESSION['edicao_token'] ??= bin2hex(random_bytes(32));
 <main>
 <h1>Atualizar aluno</h1>
 <?php
-// O primeiro POST carrega o aluno pelo ID; o envio de nome identifica a etapa de salvar a edição.
-// Nessa segunda etapa, o ID e os dados originais são recuperados da sessão no servidor.
+// distingue a busca inicial do envio que salva a edicao
+// usa a identidade salva na sessao para impedir alteracoes pelo formulario
 $aluno = false;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['id']) || isset($_POST['nome']))) {
     try {
         if (isset($_POST['nome'])) {
+            // compara os tokens de forma segura antes de permitir a edicao
             if (!is_string($_POST['token'] ?? null) || !hash_equals($_SESSION['edicao_token'], $_POST['token'])) {
                 throw new InvalidArgumentException('Solicitação inválida. Recarregue a página e busque o aluno novamente.');
             }
             $idFormulario = filter_var($_POST['aluno_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 2147483647]]);
+            // impede salvar em outro aluno quando a selecao mudou em outra aba
             if ($idFormulario === false || $idFormulario !== (int) ($_SESSION['aluno_edicao_id'] ?? 0)) {
                 throw new InvalidArgumentException('O aluno em edição mudou em outra aba. Busque novamente antes de salvar.');
             }
         }
-        $id = isset($_POST['nome']) ? (int) $_SESSION['aluno_edicao_id'] : (filter_var($_POST['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 2147483647]]) ?: 0);
+        if (isset($_POST['nome'])) {
+            $id = (int) $_SESSION['aluno_edicao_id'];
+        } else {
+            $id = filter_var($_POST['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 2147483647]]);
+            if ($id === false) {
+                $id = 0;
+            }
+        }
         $stmt = $conexao->prepare('SELECT * FROM alunos WHERE id = :id');
         $stmt->execute([':id' => $id]);
         $aluno = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -57,12 +67,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['id']) || isset($_POS
                     throw new InvalidArgumentException('Informe nome e turma com até 255 caracteres, um e-mail válido e a situação do aluno.');
                 }
                 Atualizar($conexao, $id, $nome, $turma, $nasc, $ativo, $email, $cpf);
-                // Reconsulta para preencher o formulário com os valores já atualizados no banco.
+                // reconsulta para preencher o formulario com os valores ja atualizados no banco
                 $stmt->execute([':id' => $id]);
                 $aluno = $stmt->fetch(PDO::FETCH_ASSOC);
             }
         }
-        if (!$aluno) echo '<p class="message-error">Aluno não encontrado.</p>';
+        if (!$aluno) {
+            echo '<p class="message-error">Aluno não encontrado.</p>';
+        }
     } catch (InvalidArgumentException $e) {
         echo '<p class="message-error" role="alert">' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') . '</p>';
     } catch (PDOException $e) {

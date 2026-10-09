@@ -5,8 +5,8 @@ require_once __DIR__ . '/../database/connect_postgres.php';
 $alunosCursos = [];
 $erroAlunosCursos = '';
 try {
-    // LEFT JOIN mantém alunos sem conta ou sem inscrição. Cada curso gera uma linha para o aluno.
-    // O vínculo usa usuario_id, sem presumir que e-mails iguais pertencem à mesma pessoa.
+    // mantem alunos sem conta ou inscricoes na listagem
+    // identifica o vinculo pelo id da conta e nao pela igualdade de emails
     $alunosCursos = $conexao->query('SELECT a.id, a.nome, a.turma, a.usuario_id, u.email AS conta_email, c.id AS curso_id, c.nome AS curso_nome FROM alunos a LEFT JOIN usuarios u ON u.id = a.usuario_id LEFT JOIN inscricoes i ON i.usuario_id = u.id LEFT JOIN cursos c ON c.id = i.curso_id ORDER BY a.id, c.id')->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log($e->getMessage());
@@ -36,12 +36,22 @@ try {
                         <thead><tr><th scope="col">ID do aluno</th><th scope="col">Aluno</th><th scope="col">Turma</th><th scope="col">Conta vinculada</th><th scope="col">Curso</th></tr></thead>
                         <tbody>
                             <?php foreach ($alunosCursos as $alunoCurso): ?>
+                                <?php
+                                $nomeCurso = $alunoCurso['curso_nome'] ?? null;
+                                if ($nomeCurso === null) {
+                                    if ($alunoCurso['usuario_id'] === null) {
+                                        $nomeCurso = 'Vincule a conta para consultar os cursos';
+                                    } else {
+                                        $nomeCurso = 'Sem inscrições';
+                                    }
+                                }
+                                ?>
                                 <tr>
                                     <td><?= (int) $alunoCurso['id'] ?></td>
                                     <td><?= htmlspecialchars($alunoCurso['nome'], ENT_QUOTES, 'UTF-8') ?></td>
                                     <td><?= htmlspecialchars($alunoCurso['turma'], ENT_QUOTES, 'UTF-8') ?></td>
                                     <td><?= htmlspecialchars($alunoCurso['conta_email'] ?? 'Sem conta vinculada', ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td><?= htmlspecialchars($alunoCurso['curso_nome'] ?? ($alunoCurso['usuario_id'] === null ? 'Vincule a conta para consultar os cursos' : 'Sem inscrições'), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($nomeCurso, ENT_QUOTES, 'UTF-8') ?></td>
                                 </tr>
                             <?php endforeach; ?>
                             <?php if (!$alunosCursos): ?>

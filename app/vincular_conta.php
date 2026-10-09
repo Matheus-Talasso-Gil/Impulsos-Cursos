@@ -2,22 +2,26 @@
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../login/verificar_admin.php';
 require_once __DIR__ . '/../database/connect_postgres.php';
-// Token de proteção contra CSRF, mantido durante a sessão.
+// token de protecao contra csrf mantido durante a sessao
 $_SESSION['vinculo_token'] ??= bin2hex(random_bytes(32));
 $mensagem = '';
 $vinculo = false;
-// Abrir a página ou cancelar descarta a conferência anterior e exige uma nova busca.
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') unset($_SESSION['vinculo_pendente']);
+// abrir a pagina ou cancelar descarta a conferencia anterior e exige uma nova busca
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    unset($_SESSION['vinculo_pendente']);
+}
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // compara os tokens de forma segura antes de buscar ou confirmar o vinculo
     if (!is_string($_POST['token'] ?? null) || !hash_equals($_SESSION['vinculo_token'], $_POST['token'])) {
         $mensagem = 'Solicitação inválida. Recarregue a página.';
     } else {
         try {
             if (isset($_POST['confirmar'])) {
-                // Usa os IDs conferidos no servidor, sem confiar em IDs enviados pelo formulário de confirmação.
+                // usa somente os ids conferidos no servidor para confirmar o vinculo
                 $dados = $_SESSION['vinculo_pendente'] ?? [];
+                // consome a conferencia para impedir reutilizacao da confirmacao
                 unset($_SESSION['vinculo_pendente']);
-                // Revalida a disponibilidade do aluno e o e-mail da conta antes de vincular.
+                // revalida a disponibilidade do aluno e o email da conta antes de vincular
                 $stmt = $conexao->prepare('UPDATE alunos SET usuario_id = :usuario WHERE id = :aluno AND usuario_id IS NULL AND EXISTS (SELECT 1 FROM usuarios WHERE id = :conta AND email = :email)');
                 $stmt->execute([':usuario' => $dados['usuario_id'] ?? 0, ':aluno' => $dados['aluno_id'] ?? 0, ':conta' => $dados['usuario_id'] ?? 0, ':email' => $dados['email'] ?? '']);
                 $mensagem = $stmt->rowCount() ? 'Conta vinculada com sucesso. O vínculo é permanente.' : 'Aluno não encontrado ou já vinculado.';
@@ -25,16 +29,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 unset($_SESSION['vinculo_pendente']);
                 $id = filter_var($_POST['aluno_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
                 $email = is_string($_POST['email'] ?? null) ? trim($_POST['email']) : '';
-                // CROSS JOIN combina aluno e conta; os filtros selecionam o ID e o e-mail informados.
-                // NOT EXISTS exclui contas que já estão vinculadas a um cadastro de aluno.
+                // confere o aluno e a conta juntos antes de permitir o vinculo
+                // not exists exclui contas que ja estao vinculadas a um cadastro de aluno
                 $stmt = $conexao->prepare('SELECT a.id AS aluno_id, a.nome, u.id AS usuario_id, u.email FROM alunos a CROSS JOIN usuarios u WHERE a.id = :id AND a.usuario_id IS NULL AND u.email = :email AND NOT EXISTS (SELECT 1 FROM alunos WHERE usuario_id = u.id)');
                 $stmt->execute([':id' => $id ?: 0, ':email' => $email]);
                 $resultados = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                // Evita confirmar um vínculo quando o resultado é ambíguo.
+                // evita confirmar um vinculo quando o resultado e ambiguo
                 if (count($resultados) === 1) {
                     $vinculo = $resultados[0];
                     $_SESSION['vinculo_pendente'] = $vinculo;
-                } else $mensagem = 'Informe um aluno sem conta e o e-mail de uma conta existente e única ainda sem aluno.';
+                } else {
+                    $mensagem = 'Informe um aluno sem conta e o e-mail de uma conta existente e única ainda sem aluno.';
+                }
             }
         } catch (PDOException $e) {
             error_log($e->getMessage());

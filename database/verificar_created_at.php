@@ -1,13 +1,19 @@
 <?php
-if (PHP_SAPI !== 'cli') { http_response_code(404); exit(); }
+// impede que os testes de banco sejam executados pelo navegador
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit();
+}
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/data_conta.php';
 require_once __DIR__ . '/../includes/recuperacao_senha.php';
 function conferirDataConta($condicao, $mensagem)
 {
-    if (!$condicao) throw new RuntimeException($mensagem);
+    if (!$condicao) {
+        throw new RuntimeException($mensagem);
+    }
 }
-// Somente tabelas temporárias; nenhuma migration é aplicada à tabela real.
+// somente tabelas temporarias nenhuma migration e aplicada a tabela real
 $conexao->beginTransaction();
 try {
     $conexao->exec("CREATE TEMP TABLE usuarios (id SERIAL PRIMARY KEY, email VARCHAR(255) UNIQUE, senha VARCHAR(255), tipo VARCHAR(20) NOT NULL DEFAULT 'usuario') ON COMMIT DROP");
@@ -22,10 +28,12 @@ try {
     conferirDataConta($depois === $conexao->query('SELECT * FROM usuarios')->fetch(PDO::FETCH_ASSOC), 'Reexecução alterou a conta.');
     $conexao->commit();
 } catch (Throwable $e) {
-    if ($conexao->inTransaction()) $conexao->rollBack();
+    if ($conexao->inTransaction()) {
+        $conexao->rollBack();
+    }
     throw $e;
 }
-// ON COMMIT DROP removeu as tabelas. Agora testa cadastro e recuperação em outra transação.
+// a primeira transacao removeu as tabelas temporarias ao confirmar
 $conexao->beginTransaction();
 try {
     $conexao->exec("CREATE TEMP TABLE usuarios (id SERIAL PRIMARY KEY, email VARCHAR(255) UNIQUE, senha VARCHAR(255), tipo VARCHAR(20) NOT NULL DEFAULT 'usuario') ON COMMIT DROP");
@@ -34,7 +42,7 @@ try {
     cadastrar_user($conexao, 'novo@example.com', 'senha-teste');
     $createdAt = $conexao->query('SELECT created_at FROM usuarios')->fetchColumn();
     conferirDataConta($createdAt === $conexao->query('SELECT CURRENT_TIMESTAMP::timestamp')->fetchColumn(), 'Cadastro deve usar o horário do banco.');
-    // Fixture distinta do CURRENT_TIMESTAMP desta transação detecta um UPDATE indevido na recuperação.
+    // usa uma data diferente para detectar alteracoes indevidas na recuperacao
     $conexao->exec("UPDATE usuarios SET created_at = TIMESTAMP '2026-01-02 03:04:05'");
     $createdAt = $conexao->query('SELECT created_at FROM usuarios')->fetchColumn();
     for ($i = 0; $i < 2; $i++) {

@@ -1,24 +1,27 @@
 <?php
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/recuperacao_senha.php';
-if (isset($_SESSION['id'])) { header('Location: /impulsos_cursos/login/perfil.php'); exit(); }
+if (isset($_SESSION['id'])) {
+    header('Location: /impulsos_cursos/login/perfil.php');
+    exit();
+}
 protegerRecuperacaoLocal();
 require_once __DIR__ . '/../database/connect_postgres.php';
-// Evita compartilhar a URL com token e armazenar esta página no cache.
+// evita compartilhar a url com token e armazenar esta pagina no cache
 header('Referrer-Policy: no-referrer');
 header('Cache-Control: no-store');
 $_SESSION['recuperacao_csrf'] ??= bin2hex(random_bytes(32));
-// O token vem da URL; o ID da conta é obtido apenas da sessão.
+// o token vem da url o id da conta e obtido apenas da sessao
 $token = $_GET['token'] ?? null;
 $erro = '';
 $podeRedefinir = false;
 $sucesso = false;
 try {
-    // Confere token, prazo de 10 minutos e tipo da conta antes de liberar o formulário.
+    // libera o formulario somente com token valido e conta permitida
     validarRecuperacaoSenha($conexao, $token);
     $podeRedefinir = true;
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Valida CSRF e senhas, salva o hash apenas para tipo usuario e invalida o token após a troca.
+        // altera a senha somente apos validar csrf e a recuperacao
         redefinirSenhaUsuario($conexao, $token, $_POST['csrf'] ?? null, $_POST['senha'] ?? null, $_POST['confirmacao'] ?? null);
         $sucesso = true;
         $podeRedefinir = false;

@@ -6,7 +6,7 @@ require_once __DIR__ . '/../includes/data_conta.php';
 $usuariosCadastrados = [];
 $erroUsuarios = '';
 try {
-    // Não consulta senhas: mostra apenas os dados da conta e seu vínculo com um aluno.
+    // nao consulta senhas mostra apenas os dados da conta e seu vinculo com um aluno
     $usuariosCadastrados = $conexao->query('SELECT u.id, u.email, u.tipo, u.created_at, a.nome AS aluno_nome FROM usuarios u LEFT JOIN alunos a ON a.usuario_id = u.id ORDER BY u.id')->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log($e->getMessage());

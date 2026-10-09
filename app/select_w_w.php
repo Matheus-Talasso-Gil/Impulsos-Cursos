@@ -3,11 +3,17 @@ require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../login/verificar_admin.php';
 require_once __DIR__ . '/../includes/functions.php';
 function buscarAlunoPorCpf($conexao, $cpf) {
-    if (!is_string($cpf)) return false;
+    if (!is_string($cpf)) {
+        return false;
+    }
     $cpf = preg_replace('/\D/', '', $cpf);
-    if ($cpf === '') return false;
+    if ($cpf === '') {
+        return false;
+    }
+    // compara apenas os digitos para encontrar cpfs salvos com ou sem mascara
     $stmt = $conexao->prepare("SELECT * FROM alunos WHERE regexp_replace(cpf, '[^0-9]', '', 'g') = :cpf LIMIT 1");
-    $stmt->bindParam(':cpf', $cpf); $stmt->execute();
+    $stmt->bindParam(':cpf', $cpf);
+    $stmt->execute();
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 ?>
@@ -40,14 +46,24 @@ function buscarAlunoPorCpf($conexao, $cpf) {
                 if (($_POST['tipo_consulta'] ?? '') === 'id' && !empty($_POST['id'])) {
                     $id = filter_var($_POST['id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 2147483647]]);
                     if ($id !== false) {
-                        echo '<section class="student-result" aria-label="Resultado da consulta">'; read_w_w($conexao, $id); echo '</section>';
-                    } else echo '<p class="message-error" role="alert">Número inválido, tente novamente.</p>';
+                        echo '<section class="student-result" aria-label="Resultado da consulta">';
+                        read_w_w($conexao, $id);
+                        echo '</section>';
+                    } else {
+                        echo '<p class="message-error" role="alert">Número inválido, tente novamente.</p>';
+                    }
                 } elseif (($_POST['tipo_consulta'] ?? '') === 'cpf' && !empty($_POST['cpf'])) {
                     $aluno = buscarAlunoPorCpf($conexao, $_POST['cpf']);
                     if ($aluno !== false) {
-                        echo '<section class="student-result" aria-label="Resultado da consulta">'; read_w_w($conexao, $aluno['id']); echo '</section>';
-                    } else echo '<p class="lookup-empty" role="status">Nenhum aluno encontrado com esse CPF.</p>';
-                } else echo '<p class="message-warning" role="status">Informe um ID ou CPF para consultar.</p>';
+                        echo '<section class="student-result" aria-label="Resultado da consulta">';
+                        read_w_w($conexao, $aluno['id']);
+                        echo '</section>';
+                    } else {
+                        echo '<p class="lookup-empty" role="status">Nenhum aluno encontrado com esse CPF.</p>';
+                    }
+                } else {
+                    echo '<p class="message-warning" role="status">Informe um ID ou CPF para consultar.</p>';
+                }
             } catch (PDOException $e) {
                 error_log($e->getMessage());
                 echo '<p class="message-error" role="alert">Não foi possível consultar o aluno. Tente novamente.</p>';

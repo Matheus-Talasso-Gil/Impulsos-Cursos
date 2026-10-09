@@ -1,8 +1,12 @@
 <?php
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/functions.php';
-if (isset($_SESSION['id'])) { header('Location: /impulsos_cursos/login/perfil.php'); exit(); }
+if (isset($_SESSION['id'])) {
+    header('Location: /impulsos_cursos/login/perfil.php');
+    exit();
+}
 $erro = '';
+// mantem um token imprevisivel para proteger o cadastro contra csrf
 $_SESSION['cadastro_token'] ??= bin2hex(random_bytes(32));
 $dados = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -10,12 +14,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $dados[$campo] = is_string($_POST[$campo] ?? null) ? $_POST[$campo] : '';
     }
     try {
+        // compara os tokens de forma segura antes de salvar o cadastro
         if (!is_string($_POST['token'] ?? null) || !hash_equals($_SESSION['cadastro_token'], $_POST['token'])) {
             throw new InvalidArgumentException('Solicitação inválida. Recarregue a página.');
         }
         cadastrar_aluno_usuario($conexao, $dados);
         unset($_SESSION['cadastro_token']);
-        header('Location: login.php?cadastro=sucesso'); exit();
+        header('Location: login.php?cadastro=sucesso');
+        exit();
     } catch (InvalidArgumentException $e) {
         $erro = $e->getMessage();
     } catch (PDOException $e) {

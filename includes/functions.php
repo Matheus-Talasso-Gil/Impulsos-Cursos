@@ -2,18 +2,27 @@
 require_once __DIR__ . '/../database/connect_postgres.php';
 function validar_cpf($cpf) // valida o tamanho e os dois digitos verificadores do cpf
 {
-    // \D encontra tudo que não é dígito, removendo pontos, traço e espaços antes da validação.
+    // remove caracteres que nao sao digitos antes de validar o cpf
     $cpf = preg_replace('/\D/', '', (string) $cpf);
-    if (strlen($cpf) !== 11 || preg_match('/^(\d)\1{10}$/', $cpf)) return false; // exige 11 digitos e rejeita que todos os numeros sejam repetidos
+    if (strlen($cpf) !== 11 || preg_match('/^(\d)\1{10}$/', $cpf)) {
+        return false;
+    } // exige 11 digitos e rejeita que todos os numeros sejam repetidos
     $soma = 0;
     for ($i = 0; $i < 9; $i++) {
-    $soma += (int) $cpf[$i] * (10 - $i);} // calcula a soma usada no primeiro digito verificador, com esse codigo ele vai fazer os primeiros 9 numeros, vezes 10, depois 9, depois 8 e assim por diante
+        // aplica os pesos de 10 a 2 aos primeiros nove digitos
+        $soma += (int) $cpf[$i] * (10 - $i);
+    }
     $resto = $soma % 11;
-    // Pela regra do CPF, restos 0 e 1 geram dígito 0; nos demais casos, usa-se 11 menos o resto.
+    // pela regra do cpf restos 0 e 1 geram digito 0 nos demais casos usa se 11 menos o resto
     $primeiro = $resto < 2 ? 0 : 11 - $resto; 
-    if ((int) $cpf[9] !== $primeiro) return false;
+    if ((int) $cpf[9] !== $primeiro) {
+        return false;
+    }
     $soma = 0;
-    for ($i = 0; $i < 10; $i++) $soma += (int) $cpf[$i] * (11 - $i); // calcula a soma usada no segundo digito, depois so repete o que fez na verificacao do primeiro digito
+    // calcula a soma usada no segundo digito verificador
+    for ($i = 0; $i < 10; $i++) {
+        $soma += (int) $cpf[$i] * (11 - $i);
+    }
     $resto = $soma % 11;
     $segundo = $resto < 2 ? 0 : 11 - $resto;
     return (int) $cpf[10] === $segundo;
@@ -23,9 +32,12 @@ function cadastrar($conexao, $nome, $turma, $nasc, $ativo, $email, $cpf)
     $sql = "INSERT INTO alunos (nome, turma, nasc, ativo, email, cpf) VALUES (:nome, :turma, :nasc, :ativo, :email, :cpf)";
     try {
         $stmt = $conexao->prepare($sql);
-        $stmt->bindParam(":nome", $nome); $stmt->bindParam(":turma", $turma);
-        $stmt->bindParam(":nasc", $nasc); $stmt->bindParam(":ativo", $ativo);
-        $stmt->bindParam(":email", $email); $stmt->bindParam(":cpf", $cpf);
+        $stmt->bindParam(":nome", $nome);
+        $stmt->bindParam(":turma", $turma);
+        $stmt->bindParam(":nasc", $nasc);
+        $stmt->bindParam(":ativo", $ativo);
+        $stmt->bindParam(":email", $email);
+        $stmt->bindParam(":cpf", $cpf);
         $stmt->execute();
         echo "Aluno inserido com sucesso!";
     } catch (PDOException $e) {
@@ -42,11 +54,16 @@ function listarAlunos($conexao, $turma = '', $situacao = 'todas')
         $filtros[] = 'turma = :turma';
         $parametros[':turma'] = $turma;
     }
-    if ($situacao === 'ativo') $filtros[] = 'ativo = TRUE';
-    elseif ($situacao === 'inativo') $filtros[] = 'ativo = FALSE';
-    // Cria WHERE apenas quando há filtros; AND exige que todas as condições sejam atendidas.
-    // Os valores externos ficam em $parametros, separados dos trechos fixos de SQL.
-    if ($filtros) $sql .= ' WHERE ' . implode(' AND ', $filtros);
+    if ($situacao === 'ativo') {
+        $filtros[] = 'ativo = TRUE';
+    } elseif ($situacao === 'inativo') {
+        $filtros[] = 'ativo = FALSE';
+    }
+    // combina os filtros para exigir todas as condicoes informadas
+    // separa os valores externos do sql para impedir injecao
+    if ($filtros) {
+        $sql .= ' WHERE ' . implode(' AND ', $filtros);
+    }
     $sql .= ' ORDER BY id ASC';
     $stmt = $conexao->prepare($sql);
     $stmt->execute($parametros);
@@ -58,8 +75,11 @@ function apagar($conexao, $id)
         $sql = "DELETE FROM alunos WHERE id = :id";
         $stmt = $conexao->prepare($sql);
         $stmt->execute([':id' => $id]);
-        if ($stmt->rowCount()) echo '<p class="message-success" role="status">Registro deletado.</p>';
-        else echo '<p class="message-error" role="alert">Aluno não encontrado.</p>';
+        if ($stmt->rowCount()) {
+            echo '<p class="message-success" role="status">Registro deletado.</p>';
+        } else {
+            echo '<p class="message-error" role="alert">Aluno não encontrado.</p>';
+        }
     } else {
         echo '<p class="message-error" role="alert">Insira um ID para apagar.</p>';
     }
@@ -70,7 +90,8 @@ function Consultar($conexao, $id)
             FROM alunos
             WHERE id = :id";
         $stmt = $conexao->prepare($sql);
-        $stmt->bindParam(":id", $id); $stmt->execute();
+        $stmt->bindParam(":id", $id);
+        $stmt->execute();
         $aluno = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($aluno) {
@@ -84,16 +105,18 @@ function Consultar($conexao, $id)
         echo "Aluno não encontrado.";
     }
 }
-// CPF e nascimento permanecem na assinatura por compatibilidade, mas não entram no UPDATE.
-function Atualizar($conexao, $id, $nome, $turma, $nasc, $ativo, $email, $cpf) // mantem os parametros existentes e altera somente os campos permitidos do aluno
+// preserva cpf e nascimento mesmo recebendo esses campos por compatibilidade
+function Atualizar($conexao, $id, $nome, $turma, $nasc, $ativo, $email, $cpf)
 {
       $sql = "UPDATE alunos SET nome = :nome, turma = :turma,
             ativo = :ativo, email = :email WHERE id = :id";
     try {
         $stmt = $conexao->prepare($sql);
-        $stmt->bindParam(":id", $id); $stmt->bindParam(":nome", $nome);
+        $stmt->bindParam(":id", $id);
+        $stmt->bindParam(":nome", $nome);
         $stmt->bindParam(":turma", $turma);
-        $stmt->bindParam(":ativo", $ativo); $stmt->bindParam(":email", $email);
+        $stmt->bindParam(":ativo", $ativo);
+        $stmt->bindParam(":email", $email);
         $stmt->execute();
         echo '<p class="message-success" role="status">ALUNO ATUALIZADO COM SUCESSO! VOLTE AO RELATÓRIO PARA CONFERIR.</p>';
     } catch (PDOException $e) {
@@ -106,7 +129,8 @@ function read_w_w($conexao, $id)
     try {
         $sql = "SELECT * FROM alunos WHERE id = :id;";
         $stmt = $conexao->prepare($sql);
-        $stmt->bindParam(":id", $id); $stmt->execute();
+        $stmt->bindParam(":id", $id);
+        $stmt->execute();
         $aluno = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($aluno !== false) {
             $cpfFormatado = preg_replace('/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', (string) ($aluno['cpf'] ?? ''));
@@ -133,17 +157,20 @@ function cadastrar_aluno_usuario($conexao, array $dados)
     $nome = trim($dados['nome'] ?? '');
     $email = trim($dados['email'] ?? '');
     $cpf = preg_replace('/\D/', '', $dados['cpf'] ?? '');
-    $turma = 'Sem turma'; // O administrador define a turma depois do cadastro.
+    $turma = 'Sem turma'; // o administrador define a turma depois do cadastro
     $nasc = $dados['nasc'] ?? '';
     $data = DateTimeImmutable::createFromFormat('!Y-m-d', $nasc);
     if ($nome === '' || strlen($nome) > 255) {
         throw new InvalidArgumentException('Informe um nome com até 255 caracteres.');
     }
-    if (!validar_cpf($cpf)) throw new InvalidArgumentException('Informe um CPF válido.');
+    if (!validar_cpf($cpf)) {
+        throw new InvalidArgumentException('Informe um CPF válido.');
+    }
+    // rejeita datas inexistentes ou futuras antes de criar a conta
     if (!$data || $data->format('Y-m-d') !== $nasc || $nasc > date('Y-m-d')) {
         throw new InvalidArgumentException('Informe uma data de nascimento válida.');
     }
-    // Salva conta e aluno juntos, deixando o vínculo para confirmação do admin.
+    // salva conta e aluno juntos deixando o vinculo para confirmacao do admin
     $conexao->beginTransaction();
     try {
         $stmt = $conexao->prepare("SELECT id FROM alunos WHERE regexp_replace(cpf, '[^0-9]', '', 'g') = :cpf");
@@ -154,9 +181,13 @@ function cadastrar_aluno_usuario($conexao, array $dados)
         cadastrar_user($conexao, $email, $dados['senha'] ?? '');
         $stmt = $conexao->prepare('INSERT INTO alunos (nome, cpf, nasc, turma, ativo, email) VALUES (:nome, :cpf, :nasc, :turma, TRUE, :email)');
         $stmt->execute([':nome' => $nome, ':cpf' => $cpf, ':nasc' => $nasc, ':turma' => $turma, ':email' => $email]);
+        // confirma o cadastro somente depois de salvar conta e aluno
         $conexao->commit();
     } catch (Throwable $e) {
-        if ($conexao->inTransaction()) $conexao->rollBack();
+        if ($conexao->inTransaction()) {
+            // desfaz as alteracoes se qualquer etapa do cadastro falhar
+            $conexao->rollBack();
+        }
         throw $e;
     }
 }
@@ -165,48 +196,53 @@ function cadastrar_user($conexao, $email, $senha) // valida o email e cria uma c
     if (!is_string($email) || !is_string($senha)) {
         throw new InvalidArgumentException('Informe um e-mail válido e uma senha.');
     }
-    $email = trim($email); // remove espacos ao redor do email informado sem alterar a senha
+    $email = trim($email);
     if (!filter_var($email, FILTER_VALIDATE_EMAIL) || $senha === '') {
         throw new InvalidArgumentException('Informe um e-mail válido e uma senha.');
     }
+    // impede senhas que excedem o limite do hash ou contem caracteres nulos
     if (strlen($email) > 255 || strlen($senha) > 72 || str_contains($senha, "\0")) {
         throw new InvalidArgumentException('Use um e-mail com até 255 caracteres e uma senha com até 72 bytes, sem caracteres nulos.');
     }
-        if (consultar_user($conexao, $email)) {
+    if (consultar_user($conexao, $email)) {
         throw new InvalidArgumentException('Este e-mail já está cadastrado. Entre com a senha do cadastro mais recente.');
     }
-    // Guarda um hash da senha; password_verify confere a senha no login sem precisar recuperá-la.
+    // transforma a senha em hash antes de salvar no banco
     $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
     $sql = "INSERT INTO usuarios (email, senha, tipo) VALUES (:email, :senha, 'usuario')"; // forca o cadastro publico a criar sempre uma conta comum
     $stmt = $conexao->prepare($sql);
-    $stmt->bindParam(":email", $email); $stmt->bindParam(":senha", $senhaHash);
+    $stmt->bindParam(":email", $email);
+    $stmt->bindParam(":senha", $senhaHash);
     $stmt->execute();
 }
-// Se houver e-mails duplicados, ORDER BY id DESC LIMIT 1 escolhe a conta de maior ID.
+// usa a conta mais recente quando existem emails duplicados
 function consultar_user($conexao, $email)
 {
-    if (!is_string($email)) return false;
+    if (!is_string($email)) {
+        return false;
+    }
     $email = trim($email);
     $sql = "SELECT id, email, senha, tipo FROM usuarios WHERE email = :email ORDER BY id DESC LIMIT 1";
     $stmt = $conexao->prepare($sql);
-    $stmt->bindParam(":email", $email); $stmt->execute();
+    $stmt->bindParam(":email", $email);
+    $stmt->execute();
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
-// JOIN relaciona inscrições aos cursos e o filtro restringe a consulta à conta autenticada.
+// busca apenas os cursos da conta autenticada
 function buscarCursosDoUsuario($conexao)
 {
     $stmt = $conexao->prepare('SELECT c.id, c.nome, c.descricao, c.carga_horaria FROM inscricoes i JOIN cursos c ON c.id = i.curso_id WHERE i.usuario_id = :usuario_id ORDER BY c.id');
     $stmt->execute([':usuario_id' => (int) $_SESSION['id']]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
-// LEFT JOIN mantém cursos sem inscrição; i.id IS NOT NULL calcula se a conta já está inscrita.
+// inclui cursos sem inscricao e identifica os ja inscritos pela conta
 function buscarCursosDisponiveis($conexao)
 {
     $stmt = $conexao->prepare('SELECT c.id, c.nome, c.descricao, c.carga_horaria, (i.id IS NOT NULL) AS inscrito FROM cursos c LEFT JOIN inscricoes i ON i.curso_id = c.id AND i.usuario_id = :usuario_id ORDER BY c.id');
     $stmt->execute([':usuario_id' => (int) $_SESSION['id']]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
-// Busca o curso e calcula seu estado de inscrição usando o ID da conta guardado na sessão.
+// verifica a inscricao usando somente a conta salva na sessao
 function buscarCursoPorId($conexao, $id)
 {
     $stmt = $conexao->prepare('SELECT c.id, c.nome, c.descricao, c.carga_horaria, (i.id IS NOT NULL) AS inscrito FROM cursos c LEFT JOIN inscricoes i ON i.curso_id = c.id AND i.usuario_id = :usuario_id WHERE c.id = :id');
@@ -215,21 +251,27 @@ function buscarCursoPorId($conexao, $id)
 }
 function inscreverUsuarioNoCurso($conexao, $cursoId, $token)
 {
-    if (!is_string($token) || !isset($_SESSION['inscricao_token']) || !hash_equals($_SESSION['inscricao_token'], $token)) { // rejeita tokens ausentes ou diferentes do token da sessao para impedir solicitacoes forjadas
+    if (!is_string($token) || !isset($_SESSION['inscricao_token']) || !hash_equals($_SESSION['inscricao_token'], $token)) { // compara os tokens de forma segura para impedir solicitacoes forjadas
         throw new InvalidArgumentException('Solicitação inválida. Recarregue a página e tente novamente.');
     }
     $cursoId = filter_var($cursoId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 2147483647]]);
-    if ($cursoId === false) throw new InvalidArgumentException('Informe um curso válido.');
-    // INSERT ... SELECT só insere se o curso existir; ON CONFLICT evita duplicação mesmo em envios simultâneos.
+    if ($cursoId === false) {
+        throw new InvalidArgumentException('Informe um curso válido.');
+    }
+    // inscreve apenas em cursos existentes e evita duplicatas em envios simultaneos
     $stmt = $conexao->prepare('INSERT INTO inscricoes (usuario_id, curso_id) SELECT :usuario_id, id FROM cursos WHERE id = :curso_id ON CONFLICT (usuario_id, curso_id) DO NOTHING');
     $stmt->execute([':usuario_id' => (int) $_SESSION['id'], ':curso_id' => $cursoId]);
-    if ($stmt->rowCount()) return 'Inscrição realizada com sucesso.';
-    // Se nada foi inserido, distingue um curso inexistente de uma inscrição que já estava registrada.
-    if (!buscarCursoPorId($conexao, $cursoId)) throw new InvalidArgumentException('Curso não encontrado.');
+    if ($stmt->rowCount()) {
+        return 'Inscrição realizada com sucesso.';
+    }
+    // distingue curso inexistente de inscricao ja registrada
+    if (!buscarCursoPorId($conexao, $cursoId)) {
+        throw new InvalidArgumentException('Curso não encontrado.');
+    }
     return 'Você já está inscrito neste curso.';
 }
 
-// Valida os campos conforme os limites atuais da tabela cursos (nome VARCHAR(100) e carga INTEGER).
+// valida os campos para respeitar os limites da tabela de cursos
 function validarDadosCursoAdmin($dados)
 {
     $nome = is_string($dados['nome'] ?? null) ? trim($dados['nome']) : '';
@@ -238,18 +280,21 @@ function validarDadosCursoAdmin($dados)
     if ($nome === '' || preg_match('/^.{1,100}$/us', $nome) !== 1) {
         throw new InvalidArgumentException('Informe um nome com até 100 caracteres.');
     }
-    if ($carga === false) throw new InvalidArgumentException('Informe uma carga horária inteira maior que zero.');
+    if ($carga === false) {
+        throw new InvalidArgumentException('Informe uma carga horária inteira maior que zero.');
+    }
     return ['nome' => $nome, 'descricao' => $descricao, 'carga_horaria' => $carga];
 }
 function validarTokenCursoAdmin($token)
 {
+    // compara os tokens de forma segura para proteger as alteracoes de cursos
     if (!is_string($token) || !isset($_SESSION['curso_admin_token']) || !hash_equals($_SESSION['curso_admin_token'], $token)) {
         throw new InvalidArgumentException('Solicitação inválida. Recarregue a página e tente novamente.');
     }
 }
 function buscarCursoAdmin($conexao, $id)
 {
-    // A subconsulta conta inscrições sem depender da conta autenticada.
+    // a subconsulta conta inscricoes sem depender da conta autenticada
     $stmt = $conexao->prepare('SELECT c.id, c.nome, c.descricao, c.carga_horaria, (SELECT COUNT(*) FROM inscricoes i WHERE i.curso_id = c.id) AS inscritos FROM cursos c WHERE c.id = :id');
     $stmt->execute([':id' => $id]);
     return $stmt->fetch(PDO::FETCH_ASSOC);

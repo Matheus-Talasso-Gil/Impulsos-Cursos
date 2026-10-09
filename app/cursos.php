@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../login/verificar_user.php';
 require_once __DIR__ . '/../includes/functions.php';
-$_SESSION['inscricao_token'] ??= bin2hex(random_bytes(32)); // cria um token aleatorio na sessao somente se ele ainda nao existir para proteger o formulario
+$_SESSION['inscricao_token'] ??= bin2hex(random_bytes(32)); // mantem um token aleatorio na sessao para proteger o formulario contra csrf
 $mensagem = '';
 $erro = '';
 $erroListagem = '';

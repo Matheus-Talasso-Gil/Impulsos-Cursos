@@ -1,13 +1,14 @@
 <?php
-// Página informativa: não processa formulários nem consulta o banco.
+// pagina informativa nao processa formularios nem consulta o banco
 if (!in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'HEAD'], true)) {
     header('Allow: GET, HEAD');
     http_response_code(405);
     exit('Esta página é apenas informativa.');
 }
-// Lê uma sessão existente apenas para o menu, sem atualizar dados ou renovar a atividade.
+// le uma sessao existente apenas para o menu sem atualizar dados ou renovar a atividade
 $headerSessaoSomenteLeitura = true;
 $cookieSessao = $_COOKIE[session_name()] ?? null;
+// aceita somente um identificador de sessao no formato esperado
 if (session_status() === PHP_SESSION_NONE && is_string($cookieSessao)
     && preg_match('/^[a-zA-Z0-9,-]{1,256}$/D', $cookieSessao) === 1) {
     session_start(['read_and_close' => true]);

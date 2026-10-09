@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../login/verificar_admin.php';
 require_once __DIR__ . '/../database/connect_postgres.php';
-// Consultas fixas: os indicadores não dependem de parâmetros enviados pelo visitante.
+// consultas fixas os indicadores nao dependem de parametros enviados pelo visitante
 $indicadores = [
     'alunos' => 'Alunos cadastrados',
     'usuarios' => 'Usuários cadastrados',
@@ -13,7 +13,7 @@ $resumo = [];
 $erroResumo = '';
 try {
     foreach ($indicadores as $tabela => $rotulo) {
-        // Os nomes das tabelas vêm exclusivamente da lista fixa acima; COUNT(*) retorna 0 para tabelas vazias.
+        // usa apenas nomes de tabelas da lista fixa para impedir sql externo
         $resumo[$tabela] = (int) $conexao->query('SELECT COUNT(*) FROM ' . $tabela)->fetchColumn();
     }
 } catch (PDOException $e) {

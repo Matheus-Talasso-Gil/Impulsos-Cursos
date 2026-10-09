@@ -5,20 +5,27 @@ $erro = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $usuario = consultar_user($conexao, $_POST['email'] ?? '');
-        // Confere a senha digitada contra o hash armazenado, somente se a conta foi encontrada.
+        // confere a senha pelo hash sem recuperar a senha original
         $senha = $_POST['senha'] ?? '';
         if ($usuario && is_string($senha) && password_verify($senha, $usuario['senha'])) {
-            // Troca o ID da sessão após autenticar, protegendo contra fixação de sessão.
+            // troca o id da sessao para impedir o reaproveitamento da sessao anterior
             session_regenerate_id(true);
             $_SESSION['id'] = $usuario['id'];
             $_SESSION['email'] = $usuario['email'];
             $_SESSION['tipo'] = $usuario['tipo'] ?? 'usuario';
-            // Inicia os 30 minutos de inatividade a partir da autenticação bem-sucedida.
+            // conta a inatividade a partir do login bem sucedido
             $_SESSION['ultima_atividade'] = time();
-            header('Location: ' . ($_SESSION['tipo'] === 'admin' ? '../app/admin.php' : '../app/dashboard.php')); exit();
+            if ($_SESSION['tipo'] === 'admin') {
+                $destino = '../app/admin.php';
+            } else {
+                $destino = '../app/dashboard.php';
+            }
+            header('Location: ' . $destino);
+            exit();
         }
         $erro = 'Usuário ou senha inválidos';
     } catch (PDOException $e) {
+        // registra o erro no servidor sem expor detalhes do banco ao usuario
         error_log($e->getMessage());
         $erro = 'Não foi possível consultar o cadastro. Tente novamente.';
     }

@@ -7,13 +7,19 @@ $id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_r
 $curso = false;
 $erro = '';
 try {
-    if ($id === false) throw new InvalidArgumentException('Informe um curso válido.');
+    if ($id === false) {
+        throw new InvalidArgumentException('Informe um curso válido.');
+    }
     $curso = buscarCursoAdmin($conexao, $id);
-    if (!$curso) throw new InvalidArgumentException('Curso não encontrado.');
+    if (!$curso) {
+        throw new InvalidArgumentException('Curso não encontrado.');
+    }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         validarTokenCursoAdmin($_POST['token'] ?? null);
-        if ((int) $curso['inscritos'] > 0) throw new InvalidArgumentException('Este curso possui inscrições e não pode ser excluído.');
-        // Revalida no DELETE e preserva a foreign key: nenhuma inscrição é apagada.
+        if ((int) $curso['inscritos'] > 0) {
+            throw new InvalidArgumentException('Este curso possui inscrições e não pode ser excluído.');
+        }
+        // revalida as inscricoes ao excluir para preservar cursos com alunos
         $stmt = $conexao->prepare('DELETE FROM cursos WHERE id = :id AND NOT EXISTS (SELECT 1 FROM inscricoes WHERE curso_id = :curso_id)');
         $stmt->execute([':id' => $id, ':curso_id' => $id]);
         if (!$stmt->rowCount()) {
@@ -27,7 +33,7 @@ try {
     $erro = $e->getMessage();
 } catch (PDOException $e) {
     error_log($e->getMessage());
-    // PostgreSQL 23503 indica vínculo por foreign key, inclusive uma inscrição criada durante a confirmação.
+    // trata inscricoes criadas durante a confirmacao que impedem a exclusao
     $erro = (string) $e->getCode() === '23503' ? 'Este curso possui inscrições e não pode ser excluído.' : 'Não foi possível excluir o curso. Tente novamente.';
 }
 ?>

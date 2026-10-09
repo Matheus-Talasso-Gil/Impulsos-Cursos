@@ -4,6 +4,7 @@ if (($_SESSION['tipo'] ?? 'usuario') === 'admin') {
     header('Location: /impulsos_cursos/app/admin.php');
     exit();
 }
+// recusa tipos de conta inesperados mesmo quando existe uma sessao autenticada
 if (($_SESSION['tipo'] ?? 'usuario') !== 'usuario') {
     http_response_code(403);
     exit('Acesso indisponível para esta conta.');
@@ -15,7 +16,7 @@ $meusCursos = [];
 $cursosDisponiveis = [];
 $erro = '';
 try {
-    // Identidade exclusivamente da sessão; LEFT JOIN aceita contas sem aluno vinculado.
+    // busca somente a conta da sessao mesmo quando nao ha aluno vinculado
     $stmt = $conexao->prepare('SELECT u.email, u.created_at, a.nome, a.turma, a.ativo,
         a.usuario_id AS aluno_vinculado,
         (SELECT COUNT(*) FROM inscricoes i WHERE i.usuario_id = u.id) AS total_inscricoes,
@@ -30,6 +31,7 @@ try {
             JOIN cursos c ON c.id = i.curso_id WHERE i.usuario_id = :id ORDER BY c.id LIMIT 3');
         $stmt->execute([':id' => (int) $_SESSION['id']]);
         $meusCursos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // calcula se cada curso ja possui inscricao da conta autenticada
         $stmt = $conexao->prepare('SELECT c.id, c.nome,
             EXISTS (SELECT 1 FROM inscricoes i WHERE i.curso_id = c.id AND i.usuario_id = :id) AS inscrito
             FROM cursos c ORDER BY c.id LIMIT 3');
@@ -56,7 +58,13 @@ try {
     <?php if ($erro !== ''): ?>
         <p class="message-error" role="alert"><?= htmlspecialchars($erro, ENT_QUOTES, 'UTF-8') ?></p>
     <?php else: ?>
-        <p class="dashboard-greeting"><?= trim((string) ($conta['nome'] ?? '')) !== '' ? 'Olá, ' . htmlspecialchars((string) $conta['nome'], ENT_QUOTES, 'UTF-8') . '!' : 'Olá!' ?></p>
+        <?php
+        $saudacao = 'Olá!';
+        if (trim((string) ($conta['nome'] ?? '')) !== '') {
+            $saudacao = 'Olá, ' . htmlspecialchars((string) $conta['nome'], ENT_QUOTES, 'UTF-8') . '!';
+        }
+        ?>
+        <p class="dashboard-greeting"><?= $saudacao ?></p>
         <p>Acompanhe sua conta e acesse seus cursos.</p>
         <div class="dashboard-grid">
             <section class="dashboard-card" aria-labelledby="conta-title">
