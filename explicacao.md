@@ -102,6 +102,9 @@ A árvore destaca os pontos de entrada. As tabelas abaixo explicam todos os arqu
 | [cursos.php](app/cursos.php) | Lista o catálogo para contas autenticadas e permite inscrição. Indica os cursos em que a conta já está inscrita. |
 | [curso.php](app/curso.php) | Mostra nome, descrição e carga horária de um curso. Também permite inscrição pela conta autenticada. |
 | [meus_cursos.php](app/meus_cursos.php) | Lista as inscrições da própria conta e permite cancelar uma inscrição após confirmação. |
+| [favoritos.php](app/favoritos.php) | Lista os cursos favoritos da própria conta por nome e permite removê-los. Mostra uma mensagem e acesso ao catálogo quando a lista está vazia. |
+
+Nos detalhes do curso, **Favoritar** e **Remover dos favoritos** usam formulários POST protegidos por CSRF. O dashboard comum mostra o total e até três favoritos; favoritar não realiza uma inscrição.
 
 As inscrições pertencem à **conta do usuário**, por isso não dependem de um aluno já vinculado. As páginas de catálogo, detalhes e Meus cursos também aceitam contas administrativas autenticadas.
 
@@ -158,6 +161,7 @@ Esses arquivos concentram recursos usados por várias páginas, evitando repetir
 | [adicionar_created_at_usuarios.sql](database/adicionar_created_at_usuarios.sql) | Adiciona a data de criação das contas. Contas antigas recebem o horário da execução da migração. |
 | [vincular_alunos_usuarios.sql](database/vincular_alunos_usuarios.sql) | Adiciona o vínculo opcional entre aluno e conta, suas restrições e a proteção de ID, CPF, nascimento e vínculo já preenchido. |
 | [ajustar_senha.sql](database/ajustar_senha.sql) | Amplia a coluna de senha para armazenar hashes. Não transforma senhas antigas em hash. |
+| [adicionar_favoritos.sql](database/adicionar_favoritos.sql) | Cria a tabela `favoritos` em bancos existentes com ID, conta, curso e data. Impede duplicatas e limpa favoritos quando a conta ou o curso é excluído. A mesma estrutura está em `table.pgsql`. |
 | [reset_database.pgsql](database/auto_destruicao/reset_database.pgsql) | Apaga e recria as tabelas de alunos e usuários para reiniciar dados de desenvolvimento. |
 
 > **Atenção ao reset:** esse script apaga dados e não é uma instalação completa do sistema. A estrutura de cursos, inscrições e vínculo deve ser considerada separadamente.
@@ -171,6 +175,7 @@ Os arquivos abaixo são executados pelo **terminal** e usam tabelas temporárias
 | [verificar_user.php](database/verificar_user.php) | Cadastro e autenticação, hashes, e-mails duplicados e criação apenas de contas comuns pelo cadastro público. |
 | [verificar_alunos.php](database/verificar_alunos.php) | Edição de alunos, IDs maiores que 255, CSRF, conflito entre abas, identidade preservada, busca de CPF e entradas inválidas. |
 | [verificar_created_at.php](database/verificar_created_at.php) | Migração da data de criação, sua preservação no cadastro e recuperação e a formatação apresentada nas telas. |
+| [verificar_favoritos.php](database/verificar_favoritos.php) | Verifica favoritos, isolamento entre contas, CSRF, duplicidade, ordenação, exclusões e integração com as páginas usando tabelas temporárias. |
 
 **Nomes parecidos têm papéis diferentes:** `login/verificar_user.php` protege páginas; `database/verificar_user.php` executa testes.
 

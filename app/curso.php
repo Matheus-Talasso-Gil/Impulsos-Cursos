@@ -3,11 +3,16 @@ require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../login/verificar_user.php';
 require_once __DIR__ . '/../includes/functions.php';
 $_SESSION['inscricao_token'] ??= bin2hex(random_bytes(32)); // mantem um token aleatorio na sessao para proteger o formulario contra csrf
+// usa um token separado para impedir que um formulario de inscricao altere favoritos
+$_SESSION['favoritos_token'] ??= bin2hex(random_bytes(32));
 $id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 2147483647]]);
 // aceita apenas ids positivos dentro do limite do banco
 $curso = false;
 $erro = '';
-$mensagem = '';
+$mensagem = $_SESSION['favoritos_mensagem'] ?? '';
+unset($_SESSION['favoritos_mensagem']);
+$favoritado = false;
+$erroFavoritos = '';
 if ($id === false) {
     http_response_code(400);
     $erro = 'Informe um curso válido.';
@@ -18,7 +23,20 @@ if ($id === false) {
             http_response_code(404);
             $erro = 'Curso não encontrado.';
         } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $mensagem = inscreverUsuarioNoCurso($conexao, $id, $_POST['token'] ?? null);
+            $acao = $_POST['acao'] ?? 'inscrever';
+            if ($acao === 'favoritar') {
+                $_SESSION['favoritos_mensagem'] = adicionarFavorito($conexao, $id, $_POST['token'] ?? null);
+                header('Location: curso.php?id=' . $id);
+                exit();
+            } elseif ($acao === 'desfavoritar') {
+                $_SESSION['favoritos_mensagem'] = removerFavorito($conexao, $id, $_POST['token'] ?? null);
+                header('Location: curso.php?id=' . $id);
+                exit();
+            } elseif ($acao === 'inscrever') {
+                $mensagem = inscreverUsuarioNoCurso($conexao, $id, $_POST['token'] ?? null);
+            } else {
+                throw new InvalidArgumentException('Solicitação inválida.');
+            }
             // reconsulta para que a pagina mostre o estado de inscrito apos o envio
             $curso = buscarCursoPorId($conexao, $id);
         }
@@ -26,7 +44,19 @@ if ($id === false) {
         $erro = $e->getMessage();
     } catch (PDOException $e) {
         error_log($e->getMessage());
-        $erro = 'Não foi possível carregar o curso ou realizar a inscrição. Tente novamente.';
+        if (in_array($_POST['acao'] ?? '', ['favoritar', 'desfavoritar'], true)) {
+            $erro = 'Não foi possível alterar os favoritos. Tente novamente.';
+        } else {
+            $erro = 'Não foi possível carregar o curso ou realizar a inscrição. Tente novamente.';
+        }
+    }
+}
+if ($curso) {
+    try {
+        $favoritado = cursoEstaFavoritado($conexao, $id);
+    } catch (PDOException $e) {
+        error_log($e->getMessage());
+        $erroFavoritos = 'Não foi possível carregar o estado dos favoritos. Tente novamente.';
     }
 }
 ?>
@@ -60,9 +90,24 @@ if ($id === false) {
                     <span class="course-enrolled">Já inscrito</span>
                 <?php else: ?>
                     <form method="post" class="course-enrollment">
+                        <input type="hidden" name="acao" value="inscrever">
                         <input type="hidden" name="token" value="<?= htmlspecialchars($_SESSION['inscricao_token'], ENT_QUOTES, 'UTF-8') ?>">
                         <input type="submit" value="Inscrever-se">
                     </form>
+                <?php endif; ?>
+                <?php if ($erroFavoritos === ''): ?>
+                    <form method="post" class="course-enrollment">
+                        <input type="hidden" name="token" value="<?= htmlspecialchars($_SESSION['favoritos_token'], ENT_QUOTES, 'UTF-8') ?>">
+                        <?php if ($favoritado): ?>
+                            <input type="hidden" name="acao" value="desfavoritar">
+                            <button type="submit">Remover dos favoritos</button>
+                        <?php else: ?>
+                            <input type="hidden" name="acao" value="favoritar">
+                            <button type="submit">Favoritar</button>
+                        <?php endif; ?>
+                    </form>
+                <?php else: ?>
+                    <p class="message-warning" role="status"><?= htmlspecialchars($erroFavoritos, ENT_QUOTES, 'UTF-8') ?></p>
                 <?php endif; ?>
             </div>
         </article>

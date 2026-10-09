@@ -11,6 +11,7 @@ if (($_SESSION['tipo'] ?? 'usuario') !== 'usuario') {
 }
 require_once __DIR__ . '/../database/connect_postgres.php';
 require_once __DIR__ . '/../includes/data_conta.php';
+require_once __DIR__ . '/../includes/functions.php';
 $conta = false;
 $meusCursos = [];
 $cursosDisponiveis = [];
@@ -41,6 +42,17 @@ try {
 } catch (PDOException $e) {
     error_log($e->getMessage());
     $erro = 'Não foi possível carregar seu dashboard. Tente novamente mais tarde.';
+}
+$favoritos = [];
+$totalFavoritos = 0;
+$erroFavoritos = '';
+try {
+    $favoritos = buscarFavoritosUsuario($conexao);
+    $totalFavoritos = count($favoritos);
+    $favoritos = array_slice($favoritos, 0, 3);
+} catch (PDOException $e) {
+    error_log($e->getMessage());
+    $erroFavoritos = 'Não foi possível carregar seus favoritos. Tente novamente.';
 }
 ?>
 <!DOCTYPE html>
@@ -115,6 +127,24 @@ try {
                     </ul>
                 <?php endif; ?>
                 <a class="report-link" href="cursos.php">Ver todos os cursos</a>
+            </section>
+            <section class="dashboard-card" aria-labelledby="favoritos-title">
+                <h2 id="favoritos-title">Favoritos</h2>
+                <?php if ($erroFavoritos !== ''): ?>
+                    <p class="message-warning" role="status"><?= htmlspecialchars($erroFavoritos, ENT_QUOTES, 'UTF-8') ?></p>
+                <?php else: ?>
+                    <p class="dashboard-total"><?= $totalFavoritos ?> <?= $totalFavoritos === 1 ? 'curso' : 'cursos' ?></p>
+                    <?php if (!$favoritos): ?>
+                        <p>Você ainda não favoritou nenhum curso.</p>
+                    <?php else: ?>
+                        <ul class="dashboard-course-list">
+                            <?php foreach ($favoritos as $curso): ?>
+                                <li><a href="curso.php?id=<?= (int) $curso['id'] ?>"><?= htmlspecialchars($curso['nome'], ENT_QUOTES, 'UTF-8') ?></a></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+                <?php endif; ?>
+                <a class="report-link" href="favoritos.php">Ver favoritos</a>
             </section>
         </div>
     <?php endif; ?>

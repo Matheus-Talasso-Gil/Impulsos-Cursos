@@ -327,6 +327,26 @@ impulsos_cursos/
 
 ## Preparar o banco de dados
 
+### Favoritos de cursos
+
+Contas autenticadas podem favoritar ou remover um favorito nos detalhes do curso. A página **Favoritos** lista os cursos da própria conta por nome; o dashboard comum mostra o total e uma prévia de até três cursos. O menu comum inclui o acesso, mantendo o menu administrativo atual.
+
+Novas instalações já incluem `favoritos` em `database/table.pgsql`. Para bancos existentes, execute a migração antes de usar o recurso:
+
+```powershell
+psql -h HOST -U USUARIO -d BANCO -v ON_ERROR_STOP=1 -f impulsos_cursos/database/adicionar_favoritos.sql
+```
+
+A tabela registra conta, curso e data, com unicidade por conta e curso. As alterações exigem POST e CSRF e usam somente o ID da sessão. Excluir um curso sem inscrições remove seus favoritos em cascata; cursos com inscrições continuam protegidos contra exclusão.
+
+Teste pelo terminal, com tabelas temporárias e sem alterar os registros reais:
+
+```powershell
+php impulsos_cursos/database/verificar_favoritos.php
+```
+
+### Estrutura inicial
+
 1. Crie o banco PostgreSQL que será usado pelo sistema.
 2. Configure host, nome do banco, usuário e senha em `database/connect_postgres.php`.
 3. No terminal aberto na pasta que contém `impulsos_cursos`, crie as tabelas iniciais:

@@ -299,3 +299,66 @@ function buscarCursoAdmin($conexao, $id)
     $stmt->execute([':id' => $id]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
+
+function validarFavorito($cursoId, $token)
+{
+    // usa somente a identidade da sessao para impedir operacoes em outra conta
+    $usuarioId = filter_var($_SESSION['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    if ($usuarioId === false) {
+        throw new InvalidArgumentException('Entre em sua conta para alterar os favoritos.');
+    }
+    // compara os tokens de forma segura antes de alterar os favoritos
+    if (!is_string($token) || !isset($_SESSION['favoritos_token']) || !hash_equals($_SESSION['favoritos_token'], $token)) {
+        throw new InvalidArgumentException('Solicitação inválida. Recarregue a página e tente novamente.');
+    }
+    $cursoId = filter_var($cursoId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 2147483647]]);
+    if ($cursoId === false) {
+        throw new InvalidArgumentException('Informe um curso válido.');
+    }
+    return $cursoId;
+}
+
+function cursoEstaFavoritado($conexao, $cursoId)
+{
+    $stmt = $conexao->prepare('SELECT id FROM favoritos WHERE usuario_id = :usuario_id AND curso_id = :curso_id');
+    $stmt->execute([':usuario_id' => (int) ($_SESSION['id'] ?? 0), ':curso_id' => $cursoId]);
+    return $stmt->fetchColumn() !== false;
+}
+
+function adicionarFavorito($conexao, $cursoId, $token)
+{
+    $cursoId = validarFavorito($cursoId, $token);
+    // insere apenas cursos existentes e usa a restricao unique para evitar duplicatas simultaneas
+    $stmt = $conexao->prepare('INSERT INTO favoritos (usuario_id, curso_id) SELECT :usuario_id, id FROM cursos WHERE id = :curso_id ON CONFLICT (usuario_id, curso_id) DO NOTHING');
+    $stmt->execute([':usuario_id' => (int) $_SESSION['id'], ':curso_id' => $cursoId]);
+    if ($stmt->rowCount() > 0) {
+        return 'Curso adicionado aos favoritos.';
+    }
+    if (!buscarCursoPorId($conexao, $cursoId)) {
+        throw new InvalidArgumentException('Curso não encontrado.');
+    }
+    return 'Este curso já está nos seus favoritos.';
+}
+
+function removerFavorito($conexao, $cursoId, $token)
+{
+    $cursoId = validarFavorito($cursoId, $token);
+    if (!buscarCursoPorId($conexao, $cursoId)) {
+        throw new InvalidArgumentException('Curso não encontrado.');
+    }
+    // restringe a exclusao a conta da sessao mesmo se outra conta favoritou o mesmo curso
+    $stmt = $conexao->prepare('DELETE FROM favoritos WHERE usuario_id = :usuario_id AND curso_id = :curso_id');
+    $stmt->execute([':usuario_id' => (int) $_SESSION['id'], ':curso_id' => $cursoId]);
+    if ($stmt->rowCount() > 0) {
+        return 'Curso removido dos favoritos.';
+    }
+    return 'Este curso já não está nos seus favoritos.';
+}
+
+function buscarFavoritosUsuario($conexao)
+{
+    // relaciona os cursos somente aos favoritos da conta autenticada
+    $stmt = $conexao->prepare('SELECT c.id, c.nome, c.descricao, c.carga_horaria FROM favoritos f JOIN cursos c ON c.id = f.curso_id WHERE f.usuario_id = :usuario_id ORDER BY c.nome, c.id');
+    $stmt->execute([':usuario_id' => (int) ($_SESSION['id'] ?? 0)]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}

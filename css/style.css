@@ -124,7 +124,8 @@ article p { max-width: 760px; color: var(--text-secondary); }
 .course-enrolled { display: inline-flex; align-items: center; min-height: 36px; padding: 5px 12px; color: var(--success); background: var(--success-bg); border-radius: 6px; font-weight: 650; }
 .course-actions form.course-enrollment { width: auto; max-width: none; margin: 0; padding: 0; background: transparent; border: 0; box-shadow: none; }
 .course-enrollment input[type="submit"] { margin: 0; }
-.course-enrollment button { margin: 0; }
+.course-enrollment button { margin: 0; max-width: 100%; white-space: normal; }
+.favorite-description { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 button.cancel-enrollment { color: #fff; background: var(--danger); }
 button.cancel-enrollment:hover { background: var(--danger-dark); }
 form.danger-confirmation { border-color: #f0c5ca; }

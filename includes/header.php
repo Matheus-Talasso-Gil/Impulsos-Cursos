@@ -41,6 +41,7 @@ if (!($headerSessaoSomenteLeitura ?? false)) {
                 <div class="nav-links">
                     <a href="/impulsos_cursos/app/meus_cursos.php">Meus cursos</a>
                     <a href="/impulsos_cursos/app/cursos.php">Todos os cursos</a>
+                    <a href="/impulsos_cursos/app/favoritos.php">Favoritos</a>
                 </div>
             <?php endif; ?>
             <div class="nav-account">
