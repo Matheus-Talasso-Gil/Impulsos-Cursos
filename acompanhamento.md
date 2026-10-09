@@ -17,14 +17,14 @@ Revisão em 07/10/2026, por leitura do código e dos scripts do banco. Esta revi
 ## Pendências dos requisitos principais
 
 - Pesquisa de alunos por nome ou e-mail: a consulta atual aceita apenas ID e CPF.
-- Validação no servidor da edição de alunos: nome, e-mail, turma e situação ainda são enviados ao UPDATE sem validação completa de formato, tamanho e valores permitidos.
+- Validação no servidor da edição de alunos: nome, e-mail e situação são validados no servidor antes do UPDATE.
 - Proteção contra solicitações forjadas na edição de alunos: falta token CSRF nesse fluxo.
 - Configuração de credenciais fora do código versionado: revisar `database/connect_postgres.php`, que está rastreado pelo Git.
 - Conferir os fluxos no navegador e no banco configurado e registrar resultados. Verificar também telas pequenas e mensagens de erro.
 
 ## Melhorias desejadas ainda pendentes
 
-- Gestão de turmas por telas e banco: atualmente o filtro consulta cursos reais e a edição mantém o campo textual de turma.
+- Gestão de turmas por telas e banco: atualmente o filtro consulta cursos reais e a edição permite somente nome e-mail e situação.
 - Paginação das listas.
 - Papel de funcionário e permissões próprias: atualmente os papéis são usuário e administrador.
 - Datas de matrícula e de última atualização.

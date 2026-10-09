@@ -449,7 +449,7 @@ Após aplicar a migration de vínculo, confira também:
 2. O perfil de uma conta sem aluno informa ausência de vínculo.
 3. Cadastre uma conta pública e confira o aluno já associado; inscreva em dois cursos e veja ambos em uma única linha no relatório.
 4. Uma conta não pode ser vinculada a outro aluno e um aluno vinculado não pode receber outra conta.
-5. A edição permite nome, turma, e-mail e situação sem alterar ID, CPF, nascimento ou vínculo.
+5. A edição permite nome, e-mail e situação sem alterar ID, CPF, nascimento ou vínculo.
 6. Em um cadastro de teste com inscrições, a primeira confirmação de exclusão mostra os cursos. Cancelar mantém o aluno; confirmar novamente remove somente o cadastro e preserva a conta e as inscrições.
 
 Esse roteiro orienta testes manuais; não afirma que eles foram executados no banco real.

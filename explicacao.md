@@ -115,7 +115,7 @@ As inscrições pertencem à **conta do usuário**, por isso não dependem de um
 | [admin.php](app/admin.php) | Exibe totais de alunos, usuários, cursos e inscrições, com atalhos para a gestão. |
 | [select.php](app/select.php) | Apresenta o relatório de alunos com filtros por cursos reais e situação, cursos agrupados e botão para editar. |
 | [select_w_w.php](app/select_w_w.php) | Busca um aluno por ID ou CPF e apresenta seus dados. A busca por CPF aceita registros com ou sem máscara. |
-| [update.php](app/update.php) | Busca e edita nome, turma, e-mail e situação do aluno. Preserva ID, CPF, nascimento e vínculo, com validação de sessão e CSRF. |
+| [update.php](app/update.php) | Busca e edita nome, e-mail e situação do aluno. Preserva ID, CPF, nascimento e vínculo, com validação de sessão e CSRF. |
 | [delete.php](app/delete.php) | Busca um aluno e pede confirmação para excluir. Se houver inscrições, exige uma confirmação adicional. Preserva a conta e os cursos inscritos. |
 | [usuarios.php](app/usuarios.php) | Lista contas, tipos, datas de criação e alunos vinculados. Não exibe senhas nem oferece edição de contas. |
 | [alunos_cursos.php](app/alunos_cursos.php) | Mostra os cursos dos alunos pelas contas vinculadas. Mantém na listagem alunos sem conta ou sem inscrições. |

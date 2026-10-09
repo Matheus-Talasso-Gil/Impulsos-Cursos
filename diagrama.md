@@ -72,7 +72,7 @@ ID, CPF, nascimento e vínculo já preenchido são imutáveis. A inscrição per
 
 Busca um aluno pelo `id`.
 
-Antes da exclusão, mostra o nome e a turma do aluno e pede confirmação para excluir.
+Antes da exclusão, mostra o nome e os cursos do aluno e pede confirmação para excluir.
 
 ## Fluxo de uma requisição
 
@@ -206,7 +206,7 @@ flowchart TD
     Redirecionar --> Login
 ```
 
-Ambos os tipos de conta são redirecionados ao início após o login; o admin abre o painel pelo menu ou pelos atalhos. O cadastro não autentica automaticamente nem vincula aluno por e-mail. O aluno começa ativo e com turma `Sem turma`.
+O login encaminha contas comuns ao dashboard e administradores ao painel. O cadastro não autentica automaticamente nem vincula aluno por e-mail. O aluno começa ativo e com turma `Sem turma`.
 
 ### Fluxo do usuário
 
@@ -291,7 +291,7 @@ flowchart TD
     Selecionar --> Carregar
     Carregar -->|Não| ErroBusca["Mostrar erro e buscar novamente"]
     ErroBusca --> BuscaEdicao
-    Carregar -->|Sim| Editar["Editar nome, turma, situação e e-mail"]
+    Carregar -->|Sim| Editar["Editar nome, situação e e-mail"]
     Editar --> Campos{"Campos obrigatórios e formato de e-mail válidos no formulário?"}
     Campos -->|Não| Corrigir["Corrigir os campos"]
     Corrigir --> Editar

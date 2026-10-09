@@ -34,7 +34,7 @@ Quero um sistema simples e confiável para organizar os alunos, as contas e os c
 
 - Quero que o próprio aluno se cadastre em **Cadastre-se**, informando nome, CPF, data de nascimento, e-mail e senha. O administrador não deve cadastrar pessoas pelo painel.
 - Criar a conta e o cadastro de aluno juntos, sem salvar apenas um deles quando ocorrer uma falha.
-- Não pedir turma no cadastro público: o aluno deve começar ativo e sem turma; o administrador define a turma e altera a situação depois.
+- Não pedir turma no cadastro público: o aluno deve começar ativo e sem turma; os cursos são definidos pelas inscrições e o administrador altera a situação depois.
 - Validar os dígitos verificadores do CPF e impedir cadastro público com CPF ou e-mail já cadastrado.
 - Validar campos obrigatórios e formatos antes de salvar.
 - Consultar alunos em uma lista organizada.
@@ -43,7 +43,7 @@ Quero um sistema simples e confiável para organizar os alunos, as contas e os c
 - Exibir os dados e pedir confirmação antes de excluir um aluno.
 - Mostrar uma mensagem apropriada quando a busca não encontrar resultados.
 - Permitir também a consulta individual por CPF.
-- Permitir editar nome, e-mail, turma e situação, preservando ID, CPF e nascimento após o cadastro.
+- Permitir editar nome, e-mail e situação, preservando ID, CPF e nascimento após o cadastro.
 
 ### Contas e perfil
 

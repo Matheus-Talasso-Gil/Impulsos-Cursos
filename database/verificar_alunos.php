@@ -48,10 +48,10 @@ try {
     conferirAluno($antes === $conexao->query('SELECT * FROM alunos ORDER BY id')->fetchAll(PDO::FETCH_ASSOC), 'Outra aba alterou aluno.');
     renderizarEdicaoAluno(['id' => '300']);
     $invalido = array_replace($dados, ['nome' => ['inválido'], 'token' => 'token-teste']);
-    conferirAluno(str_contains(renderizarEdicaoAluno($invalido), 'Informe nome e turma'), 'Deve rejeitar campos não textuais.');
+    conferirAluno(str_contains(renderizarEdicaoAluno($invalido), 'Informe nome com'), 'Deve rejeitar campos não textuais.');
     renderizarEdicaoAluno($dados + ['token' => 'token-teste']);
     $salvo = $conexao->query('SELECT * FROM alunos WHERE id = 300')->fetch(PDO::FETCH_ASSOC);
-    conferirAluno($salvo['nome'] === 'Nome atualizado' && $salvo['turma'] === 'ADM-01' && !$salvo['ativo'], 'Edição válida deve salvar dados e situação.');
+    conferirAluno($salvo['nome'] === 'Nome atualizado' && $salvo['turma'] === $antes[0]['turma'] && !$salvo['ativo'], 'Edição deve salvar dados e situação sem alterar turma mesmo com envio forjado.');
     conferirAluno($salvo['cpf'] === $antes[0]['cpf'] && $salvo['nasc'] === $antes[0]['nasc'], 'Edição alterou identidade do aluno.');
     $_POST = ['tipo_consulta' => 'cpf', 'cpf' => '12345678900'];
     ob_start();

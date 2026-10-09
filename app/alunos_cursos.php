@@ -33,7 +33,7 @@ try {
                 <div class="table-wrapper" tabindex="0" role="region" aria-label="Cursos dos alunos">
                     <table>
                         <caption>Alunos cadastrados e suas inscrições em cursos</caption>
-                        <thead><tr><th scope="col">ID do aluno</th><th scope="col">Aluno</th><th scope="col">Turma</th><th scope="col">Conta</th><th scope="col">Curso</th></tr></thead>
+                        <thead><tr><th scope="col">ID do aluno</th><th scope="col">Aluno</th><th scope="col">Conta</th><th scope="col">Curso</th></tr></thead>
                         <tbody>
                             <?php foreach ($alunosCursos as $alunoCurso): ?>
                                 <?php
@@ -49,13 +49,12 @@ try {
                                 <tr>
                                     <td><?= (int) $alunoCurso['id'] ?></td>
                                     <td><?= htmlspecialchars($alunoCurso['nome'], ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td><?= htmlspecialchars((string) ($alunoCurso['turma'] ?? 'Sem turma'), ENT_QUOTES, 'UTF-8') ?></td>
                                     <td><?= htmlspecialchars($alunoCurso['conta_email'] ?? 'Sem conta', ENT_QUOTES, 'UTF-8') ?></td>
                                     <td><?= htmlspecialchars($nomeCurso, ENT_QUOTES, 'UTF-8') ?></td>
                                 </tr>
                             <?php endforeach; ?>
                             <?php if (!$alunosCursos): ?>
-                                <tr><td colspan="5">Nenhum aluno cadastrado.</td></tr>
+                                <tr><td colspan="4">Nenhum aluno cadastrado.</td></tr>
                             <?php endif; ?>
                         </tbody>
                     </table>

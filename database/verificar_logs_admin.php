@@ -1,7 +1,6 @@
 <?php
-// verifica o historico usando somente tabelas temporarias
 if (PHP_SAPI !== 'cli') {
-    http_response_code(404);
+    http_response_code(404);// verifica o historico usando somente tabelas temporarias
     exit();
 }
 require_once __DIR__ . '/../includes/functions.php';

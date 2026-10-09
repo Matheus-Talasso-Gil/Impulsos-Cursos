@@ -15,7 +15,11 @@ $aluno = false;
 $erroPerfil = '';
 // busca somente o aluno vinculado a conta autenticada
 try {
-    $stmt = $conexao->prepare('SELECT id, nome, nasc, turma, email, ativo FROM alunos WHERE usuario_id = :usuario_id');
+    $stmt = $conexao->prepare("SELECT a.id, a.nome, a.nasc, a.email, a.ativo,
+        COALESCE((SELECT STRING_AGG(c.nome, ', ' ORDER BY c.nome, c.id)
+            FROM inscricoes i JOIN cursos c ON c.id = i.curso_id
+            WHERE i.usuario_id = a.usuario_id), 'Sem curso') AS cursos
+        FROM alunos a WHERE a.usuario_id = :usuario_id");
     $stmt->execute([':usuario_id' => (int) $_SESSION['id']]);
     $aluno = $stmt->fetch(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -76,7 +80,7 @@ if (!$ehAdmin) {
             <div class="profile-registration-status"><span class="student-status <?= $aluno['ativo'] ? 'is-active' : 'is-inactive' ?>">Cadastro <?= $aluno['ativo'] ? 'ativo' : 'inativo' ?></span></div>
             <?php ?>
             <dl class="profile-details">
-            <?php foreach (['id' => 'Matrícula', 'nome' => 'Nome completo', 'nasc' => 'Data de nascimento', 'turma' => 'Turma', 'email' => 'E-mail do aluno'] as $campo => $rotulo): ?>
+            <?php foreach (['id' => 'Matrícula', 'nome' => 'Nome completo', 'nasc' => 'Data de nascimento', 'cursos' => 'Cursos', 'email' => 'E-mail do aluno'] as $campo => $rotulo): ?>
                 <div><dt><?= $rotulo ?></dt><dd><?= htmlspecialchars((string) ($aluno[$campo] ?? ''), ENT_QUOTES, 'UTF-8') ?: 'Não informado' ?></dd></div>
             <?php endforeach; ?>
             </dl>

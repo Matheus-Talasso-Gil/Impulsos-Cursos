@@ -18,11 +18,14 @@ $cursosDisponiveis = [];
 $erro = '';
 try {
     // busca somente a conta da sessao mesmo quando nao ha aluno vinculado
-    $stmt = $conexao->prepare('SELECT u.email, u.created_at, a.nome, a.turma, a.ativo,
+    $stmt = $conexao->prepare("SELECT u.email, u.created_at, a.nome, a.ativo,
+        COALESCE((SELECT STRING_AGG(c.nome, ', ' ORDER BY c.nome, c.id)
+            FROM inscricoes i JOIN cursos c ON c.id = i.curso_id
+            WHERE i.usuario_id = u.id), 'Sem curso') AS cursos,
         a.usuario_id AS aluno_vinculado,
         (SELECT COUNT(*) FROM inscricoes i WHERE i.usuario_id = u.id) AS total_inscricoes,
         (SELECT COUNT(*) FROM cursos) AS total_cursos
-        FROM usuarios u LEFT JOIN alunos a ON a.usuario_id = u.id WHERE u.id = :id');
+        FROM usuarios u LEFT JOIN alunos a ON a.usuario_id = u.id WHERE u.id = :id");
     $stmt->execute([':id' => (int) $_SESSION['id']]);
     $conta = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$conta) {
@@ -89,7 +92,7 @@ try {
                     <div><dt>Conta criada em</dt><dd><?= htmlspecialchars(formatarDataCriacaoConta($conta['created_at']), ENT_QUOTES, 'UTF-8') ?></dd></div>
                     <?php if ($conta['aluno_vinculado'] !== null): ?>
                         <div><dt>Situação</dt><dd><?= in_array($conta['ativo'], [true, 1, '1', 't'], true) ? 'Ativo' : 'Inativo' ?></dd></div>
-                        <div><dt>Turma</dt><dd><?= htmlspecialchars((string) ($conta['turma'] ?? ''), ENT_QUOTES, 'UTF-8') ?: 'Não informada' ?></dd></div>
+                        <div><dt>Cursos</dt><dd><?= htmlspecialchars((string) $conta['cursos'], ENT_QUOTES, 'UTF-8') ?></dd></div>
                     <?php endif; ?>
                 </dl>
                 <?php if ($conta['aluno_vinculado'] === null): ?>

@@ -236,12 +236,12 @@ Cada botão Editar pertence a um formulário que envia o ID por POST para `updat
 
 A confirmação exibida é “ALUNO ATUALIZADO COM SUCESSO! VOLTE AO RELATÓRIO PARA CONFERIR.”. Não há redirecionamento automático ao relatório. O botão Restaurar campos repõe os valores com que o formulário foi carregado, sem alterar o banco.
 
-O ID original fica na sessão. ID, CPF e nascimento são exibidos sem edição; a função grava somente nome, turma, situação e e-mail. A proteção no banco também impede alterar a identidade e trocar um vínculo preenchido.
+O ID original fica na sessão. ID, CPF e nascimento são exibidos sem edição; a função grava somente nome, situação e e-mail. A proteção no banco também impede alterar a identidade e trocar um vínculo preenchido.
 
 #### `delete.php` — Exclusão com confirmação
 
 1. O usuário informa o ID e clica em Continuar para exclusão.
-2. A página busca o aluno e mostra ID, nome e turma.
+2. A página busca o aluno e mostra ID, nome e cursos.
 3. Confirmar exclusão valida o token CSRF e os dados pendentes na sessão.
 4. Se a conta tem inscrições, uma segunda tela na própria página lista os cursos e pede “Excluir aluno mesmo com cursos”. A primeira confirmação não exclui.
 5. Após as confirmações necessárias, chama `apagar($conexao, $id)` e remove somente o aluno. A conta e suas inscrições continuam existindo; o perfil perde o vínculo com o cadastro excluído.
@@ -300,7 +300,7 @@ Arquivo: [includes/functions.php](includes/functions.php).
 | `listarAlunos($conexao, $cursoId = '', $situacao = 'todas')` | Lista alunos em ordem de ID com filtros opcionais. |
 | `apagar($conexao, $id)` | Exclui somente o aluno e verifica as linhas afetadas. As confirmações ficam em `delete.php`. |
 | `Consultar($conexao, $id)` | Função disponível para buscar e exibir um aluno. |
-| `Atualizar($conexao, $id, $nome, $turma, $nasc, $ativo, $email, $cpf)` | Mantém a assinatura existente e grava somente nome, turma, situação e e-mail. |
+| `Atualizar($conexao, $id, $nome, $turma, $nasc, $ativo, $email, $cpf)` | Mantém a assinatura existente e grava somente nome, situação e e-mail. |
 | `read_w_w($conexao, $id)` | Busca e exibe os dados do aluno e um link para voltar ao início. |
 | `cadastrar_user($conexao, $email, $senha)` | Valida e-mail e duplicatas e cria uma conta comum com senha em hash e retorna o ID obtido por RETURNING id. |
 | `consultar_user($conexao, $email)` | Retorna ID, e-mail, hash e tipo para autenticação. |
@@ -336,16 +336,11 @@ No HTML, `label` identifica o campo; `input` recebe um valor; `select` apresenta
 Trecho da edição de aluno:
 
 ```html
-<label for="turma">Turma:</label>
-<select name="turma" id="turma" required>
-    <option value="" selected disabled>Selecione a turma</option>
-    <option value="INF-01">INF-01 — Informática Básica</option>
-    <option value="ING-01">ING-01 — Inglês</option>
-    <option value="ADM-01">ADM-01 — Administração</option>
-</select>
+<label for="nome">Nome:</label>
+<input type="text" name="nome" id="nome" required>
 ```
 
-`for="turma"` conecta o texto do `label` ao campo que tem `id="turma"`. Já `name="turma"` define o nome enviado ao PHP. Ao escolher Inglês, o navegador envia o valor `ING-01`, que fica disponível em `$_POST['turma']`. O texto completo da opção é apenas o que o usuário vê.
+O atributo for associa o label ao campo. O atributo name define o valor recebido pelo PHP. A edição não oferece campo de turma.
 
 ### 7.2. Buscar um aluno no banco
 
@@ -387,7 +382,7 @@ O botão Editar do relatório envia somente o ID. A página carrega os dados, ma
 
 ```php
 if ($aluno && isset($_POST['nome'])) {
-    Atualizar($conexao, $id, $_POST['nome'], $_POST['turma'],
+    Atualizar($conexao, $id, $_POST['nome'], $aluno['turma'],
         $nasc, $_POST['ativo'], $_POST['email'], $cpf);
     $stmt->execute([':id' => $id]);
     $aluno = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -485,7 +480,7 @@ Este roteiro é uma orientação de teste, não um registro de testes executados
 ## 10. Limitações da versão atual
 
 - Novas senhas são gravadas com `password_hash()` e verificadas com `password_verify()`. Antes de usar, execute `database/ajustar_senha.sql` para ampliar o campo para `VARCHAR(255)`. Senhas antigas em texto precisam ser convertidas ou redefinidas; o login não aceita texto puro armazenado no banco.
-- A edição de aluno valida nome, turma, e-mail e situação no servidor. Os formulários de busca, edição e exclusão aceitam IDs positivos até 2147483647.
+- A edição de aluno valida nome, e-mail e situação no servidor. Os formulários de busca, edição e exclusão aceitam IDs positivos até 2147483647.
 - Para verificar as correções de edição, CSRF, abas diferentes, CPF com pontuação e entradas inválidas, execute `php impulsos_cursos/database/verificar_alunos.php` a partir da pasta pai do projeto. O teste usa tabelas temporárias e rollback, preservando os cadastros reais.
 - O cadastro inicia o campo legado turma como Sem turma; esse campo não determina inscrições.
 - Cadastro, edição e exclusão de aluno, vínculo, inscrição em cursos, gestão de cursos e recuperação de senha possuem token CSRF. A edição também confere se o aluno do formulário continua sendo o selecionado na sessão, impedindo salvar em outro aluno ao alternar abas. A cobertura não inclui todos os formulários do sistema.

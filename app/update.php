@@ -58,15 +58,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['id']) || isset($_POS
                 echo '<p class="message-error">Não foi possível recuperar os dados originais do aluno.</p>';
             } else {
                 $nome = is_string($_POST['nome'] ?? null) ? trim($_POST['nome']) : '';
-                $turma = is_string($_POST['turma'] ?? null) ? trim($_POST['turma']) : '';
                 $email = is_string($_POST['email'] ?? null) ? trim($_POST['email']) : '';
                 $ativo = $_POST['ativo'] ?? null;
-                if (preg_match('/^.{1,255}$/us', $nome) !== 1 || preg_match('/^.{1,255}$/us', $turma) !== 1
+                if (preg_match('/^.{1,255}$/us', $nome) !== 1
                     || strlen($email) > 255 || !filter_var($email, FILTER_VALIDATE_EMAIL)
                     || !in_array($ativo, ['true', 'false'], true)) {
-                    throw new InvalidArgumentException('Informe nome e turma com até 255 caracteres, um e-mail válido e a situação do aluno.');
+                    throw new InvalidArgumentException('Informe nome com até 255 caracteres, um e-mail válido e a situação do aluno.');
                 }
-                Atualizar($conexao, $id, $nome, $turma, $nasc, $ativo, $email, $cpf);
+                Atualizar($conexao, $id, $nome, $aluno['turma'], $nasc, $ativo, $email, $cpf);
                 // reconsulta para preencher o formulario com os valores ja atualizados no banco
                 $stmt->execute([':id' => $id]);
                 $aluno = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -104,9 +103,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['id']) || isset($_POS
 
     <label>CPF:</label>
     <p><?= htmlspecialchars((string) $aluno['cpf'], ENT_QUOTES, 'UTF-8') ?></p>
-
-    <label for="turma">Turma:</label>
-    <input type="text" name="turma" id="turma" value="<?= htmlspecialchars((string) $aluno['turma'], ENT_QUOTES, 'UTF-8') ?>" required>
 
     <label for="email">E-mail:</label>
     <input type="email" name="email" id="email" value="<?= htmlspecialchars((string) $aluno['email'], ENT_QUOTES, 'UTF-8') ?>" required>

@@ -116,13 +116,12 @@ function Consultar($conexao, $id)
 // preserva cpf e nascimento mesmo recebendo esses campos por compatibilidade
 function Atualizar($conexao, $id, $nome, $turma, $nasc, $ativo, $email, $cpf)
 {
-      $sql = "UPDATE alunos SET nome = :nome, turma = :turma,
+      $sql = "UPDATE alunos SET nome = :nome,
             ativo = :ativo, email = :email WHERE id = :id";
     try {
         $stmt = $conexao->prepare($sql);
         $stmt->bindParam(":id", $id);
         $stmt->bindParam(":nome", $nome);
-        $stmt->bindParam(":turma", $turma);
         $stmt->bindParam(":ativo", $ativo);
         $stmt->bindParam(":email", $email);
         $stmt->execute();
@@ -138,7 +137,13 @@ function Atualizar($conexao, $id, $nome, $turma, $nasc, $ativo, $email, $cpf)
 function read_w_w($conexao, $id)
 {
     try {
-        $sql = "SELECT * FROM alunos WHERE id = :id;";
+        // mostra as inscricoes reais sem usar o campo antigo de turma
+        $sql = "SELECT a.*, COALESCE((
+                    SELECT STRING_AGG(c.nome, ', ' ORDER BY c.nome, c.id)
+                    FROM inscricoes i JOIN cursos c ON c.id = i.curso_id
+                    WHERE i.usuario_id = a.usuario_id
+                ), 'Sem curso') AS cursos
+                FROM alunos a WHERE a.id = :id";
         $stmt = $conexao->prepare($sql);
         $stmt->bindParam(":id", $id);
         $stmt->execute();
@@ -148,11 +153,11 @@ function read_w_w($conexao, $id)
             echo '<h2>Dados do aluno</h2><dl class="student-details">';
             echo '<div><dt>ID</dt><dd>' . htmlspecialchars((string) $aluno['id'], ENT_QUOTES, 'UTF-8') . '</dd></div>';
             echo '<div><dt>Aluno</dt><dd>' . htmlspecialchars((string) $aluno['nome'], ENT_QUOTES, 'UTF-8') . '</dd></div>';
-            echo '<div><dt>CPF</dt><dd>' . htmlspecialchars((string) $cpfFormatado, ENT_QUOTES, 'UTF-8') . '</dd></div>';
-            echo '<div><dt>Turma</dt><dd>' . htmlspecialchars((string) $aluno['turma'], ENT_QUOTES, 'UTF-8') . '</dd></div>';
-            echo '<div><dt>E-mail</dt><dd>' . htmlspecialchars((string) $aluno['email'], ENT_QUOTES, 'UTF-8') . '</dd></div>';
+            echo '<div><dt>CPF</dt><dd class="student-cpf">' . htmlspecialchars((string) $cpfFormatado, ENT_QUOTES, 'UTF-8') . '</dd></div>';
             echo '<div><dt>Data de nascimento</dt><dd>' . htmlspecialchars((string) $aluno['nasc'], ENT_QUOTES, 'UTF-8') . '</dd></div>';
+            echo '<div><dt>E-mail</dt><dd>' . htmlspecialchars((string) $aluno['email'], ENT_QUOTES, 'UTF-8') . '</dd></div>';
             echo '<div><dt>Status</dt><dd><span class="student-status ' . ($aluno['ativo'] ? 'is-active' : 'is-inactive') . '">' . ($aluno['ativo'] ? 'Ativo' : 'Inativo') . '</span></dd></div>';
+            echo '<div class="student-courses"><dt>Cursos</dt><dd>' . htmlspecialchars((string) $aluno['cursos'], ENT_QUOTES, 'UTF-8') . '</dd></div>';
             echo '</dl>';
         } else {
             echo '<p class="lookup-empty" role="status">Nenhum registro encontrado.</p>';
@@ -168,7 +173,7 @@ function cadastrar_aluno_usuario($conexao, array $dados)
     $nome = trim($dados['nome'] ?? '');
     $email = trim($dados['email'] ?? '');
     $cpf = preg_replace('/\D/', '', $dados['cpf'] ?? '');
-    $turma = 'Sem turma'; // o administrador define a turma depois do cadastro
+    $turma = 'Sem turma'; // mantem compatibilidade com a coluna antiga sem definir inscricoes
     $nasc = $dados['nasc'] ?? '';
     $data = DateTimeImmutable::createFromFormat('!Y-m-d', $nasc);
     if ($nome === '' || strlen($nome) > 255) {

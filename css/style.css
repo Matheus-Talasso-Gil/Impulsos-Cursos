@@ -383,6 +383,9 @@ main a.report-link:hover { color: #fff; background: var(--primary-dark); }
 .student-details > div { padding: var(--space-3) 0; border-top: 1px solid var(--border); }
 .student-details dt { color: var(--text-secondary); font-size: 13px; }
 .student-details dd { margin: 3px 0 0; overflow-wrap: anywhere; font-weight: 650; }
+.student-details .student-cpf { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.student-details > .student-courses { grid-column: 1 / -1; }
+.student-courses dd { line-height: 1.6; }
 .lookup-home-link { display: inline-block; margin-top: 18px; }
 
 /* Acesso restrito às páginas administrativas. */

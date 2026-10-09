@@ -85,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['id'])) {
     <h2><?= $confirmacaoCursos ? 'Atenção: este aluno está inscrito em cursos' : 'Deseja excluir este aluno?' ?></h2>
     <p>ID: <?= htmlspecialchars((string) $aluno['id'], ENT_QUOTES, 'UTF-8') ?></p>
     <p>Nome: <?= htmlspecialchars((string) $aluno['nome'], ENT_QUOTES, 'UTF-8') ?></p>
-    <p>Turma: <?= htmlspecialchars((string) $aluno['turma'], ENT_QUOTES, 'UTF-8') ?></p>
+    <p>Cursos: <?= htmlspecialchars($cursos ? implode(', ', array_column($cursos, 'nome')) : 'Sem curso', ENT_QUOTES, 'UTF-8') ?></p>
     <?php if ($confirmacaoCursos): ?>
         <ul>
             <?php foreach ($cursos as $curso): ?>
