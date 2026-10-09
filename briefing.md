@@ -16,7 +16,7 @@ Quero um sistema simples e confiável para organizar os alunos, as contas e os c
 
 - **Visitante:** acessa a apresentação da empresa, o login e o cadastro público.
 - **Aluno/usuário:** cria uma conta comum, consulta seu perfil e gerencia suas próprias inscrições em cursos.
-- **Administrador:** gerencia alunos e cursos, consulta contas e confirma o vínculo entre uma conta e um cadastro de aluno; futuramente, gerencia também as permissões da equipe.
+- **Administrador:** gerencia alunos e cursos, consulta contas e alunos associados automaticamente; futuramente, gerencia também as permissões da equipe.
 - **Funcionário autorizado:** realiza operações com alunos conforme as permissões definidas.
 
 ## Requisitos principais
@@ -38,7 +38,7 @@ Quero um sistema simples e confiável para organizar os alunos, as contas e os c
 - Validar os dígitos verificadores do CPF e impedir cadastro público com CPF ou e-mail já cadastrado.
 - Validar campos obrigatórios e formatos antes de salvar.
 - Consultar alunos em uma lista organizada.
-- Pesquisar por nome, e-mail ou ID e filtrar por turma e situação.
+- Pesquisar por nome, e-mail ou ID e filtrar por curso e situação.
 - Editar os dados de um aluno e confirmar o resultado da operação.
 - Exibir os dados e pedir confirmação antes de excluir um aluno.
 - Mostrar uma mensagem apropriada quando a busca não encontrar resultados.
@@ -48,8 +48,8 @@ Quero um sistema simples e confiável para organizar os alunos, as contas e os c
 ### Contas e perfil
 
 - Quero que o administrador consulte as contas cadastradas e veja quais possuem aluno vinculado, sem exibir senhas.
-- O administrador deve conferir o ID do aluno e o e-mail da conta antes de confirmar um vínculo único e permanente: uma conta por aluno e um aluno por conta.
-- Manter cadastros antigos sem conta no relatório até que o administrador realize o vínculo.
+- O cadastro deve salvar automaticamente o ID da conta no aluno na mesma transação, mantendo um vínculo único e permanente.
+- Manter cadastros antigos sem conta no relatório; a migration só associa correspondências únicas de e-mail.
 - Mostrar no perfil somente os dados do aluno vinculado à conta autenticada e uma prévia dos seus cursos. Informar quando ainda não houver vínculo.
 - Ao excluir um aluno, preservar a conta e suas inscrições. Se houver cursos inscritos, listar os cursos e pedir uma confirmação adicional antes da exclusão.
 
@@ -104,7 +104,7 @@ Quero um sistema simples e confiável para organizar os alunos, as contas e os c
 
 ## Prioridades
 
-1. Manter login, cadastro público de conta e aluno, vínculo administrativo, consulta, edição e exclusão funcionando corretamente.
+1. Manter login, cadastro público de conta e aluno, vínculo automático, consulta, edição e exclusão funcionando corretamente.
 2. Melhorar busca, filtros e experiência em dispositivos móveis.
 3. Implementar permissões, gestão de turmas e histórico.
 4. Manter catálogo, gestão de cursos, inscrições, cancelamento, perfil e indicadores administrativos; avaliar exportações, indicadores por turma e recuperação de senha para uso real.

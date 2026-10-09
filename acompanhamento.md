@@ -6,8 +6,8 @@ Revisão em 07/10/2026, por leitura do código e dos scripts do banco. Esta revi
 
 - Cadastro público de conta e aluno, sem escolha de turma, com validação de CPF e transação.
 - Login, logout, contas comuns e administrativas e menus por perfil.
-- Relatório, filtros por turma/situação, busca por ID/CPF e edição de aluno.
-- Vínculo administrativo único entre conta e aluno e perfil pessoal.
+- Relatório, filtros por curso/situação, busca por ID/CPF e edição de aluno.
+- Vínculo automático único entre conta e aluno e perfil pessoal.
 - Exclusão de aluno com confirmação, preservação da conta/inscrições e confirmação adicional quando há cursos.
 - Gestão de cursos, catálogo, detalhes, inscrição, Meus cursos e cancelamento com confirmação.
 - Consulta administrativa de contas e cursos dos alunos e painel com totais gerais.
@@ -24,7 +24,7 @@ Revisão em 07/10/2026, por leitura do código e dos scripts do banco. Esta revi
 
 ## Melhorias desejadas ainda pendentes
 
-- Gestão de turmas por telas e banco: atualmente há códigos fixos nos filtros e campo textual na edição.
+- Gestão de turmas por telas e banco: atualmente o filtro consulta cursos reais e a edição mantém o campo textual de turma.
 - Paginação das listas.
 - Papel de funcionário e permissões próprias: atualmente os papéis são usuário e administrador.
 - Datas de matrícula e de última atualização.
@@ -35,12 +35,12 @@ Revisão em 07/10/2026, por leitura do código e dos scripts do banco. Esta revi
 - Exportação de relatórios em CSV ou PDF.
 - Indicadores de alunos ativos por turma; o painel atual mostra totais gerais.
 - Recuperação de senha para uso real por canal verificado.
-- Sinalização de outros cadastros incompletos; situação e ausência de vínculo já são exibidas.
+- Sinalização de outros cadastros incompletos; a situação é exibida no relatório.
 
 ## Limitações observadas
 
 - As telas de consulta por ID, busca para edição e exclusão ainda limitam o campo a 255; cadastros acima desse ID precisam ser considerados.
-- Alunos antigos com CPF já cadastrado não conseguem criar uma conta pelo novo cadastro combinado. É necessário definir um fluxo para criar somente a conta e depois vinculá-la ao cadastro existente.
-- Alunos sem turma aparecem na listagem geral, mas não há opção específica de filtro para “Sem turma”.
+- Alunos antigos com CPF já cadastrado não conseguem criar uma conta pelo novo cadastro combinado. O cadastro combinado rejeita CPF existente; a migration só associa contas já existentes quando há correspondência única de e-mail.
+- Alunos sem cursos aparecem na listagem geral como Sem curso.
 
 As funcionalidades além do escopo original foram incorporadas ao briefing como requisitos do cliente nesta revisão. As pendências foram mantidas, sem tratar implementação ou teste ausente como concluído.

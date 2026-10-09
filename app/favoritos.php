@@ -54,7 +54,11 @@ try {
     <?php if ($erroListagem !== ''): ?>
         <p class="message-error" role="alert"><?= htmlspecialchars($erroListagem, ENT_QUOTES, 'UTF-8') ?></p>
     <?php elseif (!$favoritos): ?>
-        <p class="message-warning">Você ainda não favoritou nenhum curso.</p>
+        <section class="profile-empty favorites-empty" aria-labelledby="favoritos-vazios-titulo">
+            <h2 id="favoritos-vazios-titulo">Nenhum curso favoritado ainda</h2>
+            <p>Você ainda não favoritou nenhum curso. Escolha um curso e use Favoritar para guardá-lo aqui.</p>
+            <a class="report-link" href="/impulsos_cursos/app/cursos.php">Ver todos os cursos</a>
+        </section>
     <?php else: ?>
         <section class="courses" aria-label="Cursos favoritos">
             <div class="course-grid">

@@ -30,6 +30,11 @@ function renderizarEdicaoAluno(array $post)
 }
 $conexao->beginTransaction();
 try {
+    // mantem os logs da edicao isolados do historico real
+    $conexao->exec('CREATE TEMP TABLE usuarios (id INTEGER PRIMARY KEY, email VARCHAR(255), senha VARCHAR(255), tipo VARCHAR(20)) ON COMMIT DROP');
+    $conexao->exec("INSERT INTO usuarios VALUES (1, 'admin@example.com', 'hash-teste', 'admin')");
+    $migrationLogs = str_replace('CREATE TABLE IF NOT EXISTS logs_admin', 'CREATE TEMP TABLE IF NOT EXISTS logs_admin', file_get_contents(__DIR__ . '/adicionar_logs_admin.sql'));
+    $conexao->exec($migrationLogs);
     $conexao->exec('CREATE TEMP TABLE alunos (id INTEGER PRIMARY KEY, nome VARCHAR(255), turma VARCHAR(255), nasc DATE, ativo BOOLEAN, email VARCHAR(255), cpf VARCHAR(14), usuario_id INTEGER) ON COMMIT DROP');
     $conexao->exec("INSERT INTO alunos VALUES (300, 'Aluno teste', 'INF-01', '2000-01-02', TRUE, 'aluno@example.com', '123.456.789-00', NULL), (301, 'Outro aluno', 'ING-01', '2001-02-03', TRUE, 'outro@example.com', '98765432100', NULL)");
     $antes = $conexao->query('SELECT * FROM alunos ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);

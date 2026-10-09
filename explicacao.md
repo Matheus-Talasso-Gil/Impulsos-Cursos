@@ -19,7 +19,7 @@ As descrições seguem o código atual. O sistema usa **PHP, HTML, CSS e Postgre
 | `trello/` | Imagens do acompanhamento das etapas do projeto. |
 | Arquivos `.md` | Orientações, requisitos, diagramas e documentação. |
 
-**Conta e aluno são registros diferentes:** a conta permite entrar no sistema; o aluno guarda os dados pessoais e escolares. O administrador confirma o vínculo entre esses registros.
+**Conta e aluno são registros diferentes:** a conta permite entrar no sistema; o aluno guarda os dados pessoais e escolares. O cadastro público cria ambos na mesma transação e preenche automaticamente alunos.usuario_id.
 
 ## Árvore resumida do projeto
 
@@ -30,8 +30,7 @@ impulsos_cursos/
 │   ├── admin.php
 │   ├── cursos.php
 │   ├── meus_cursos.php
-│   ├── usuarios.php
-│   └── vincular_conta.php
+│   └── usuarios.php
 ├── login/
 │   ├── cadastrar.php
 │   ├── login.php
@@ -80,12 +79,13 @@ A árvore destaca os pontos de entrada. As tabelas abaixo explicam todos os arqu
 
 | Arquivo | O que faz |
 | --- | --- |
-| [cadastrar.php](login/cadastrar.php) | Recebe nome, CPF, nascimento, e-mail e senha. Cria conta comum e aluno na mesma transação, com aluno ativo e turma `Sem turma`. O vínculo fica para o administrador. |
+| [cadastrar.php](login/cadastrar.php) | Recebe nome, CPF, nascimento, e-mail e senha. Cria conta comum e aluno na mesma transação, com aluno ativo e turma `Sem turma`. O vínculo é preenchido automaticamente usando o ID retornado pelo INSERT da conta. |
 | [login.php](login/login.php) | Confere e-mail e senha, renova o identificador da sessão e guarda os dados de autenticação. Encaminha usuário ao dashboard e administrador ao painel. |
 | [logout.php](login/logout.php) | Limpa os dados da sessão, encerra a autenticação e retorna à página inicial. |
 | [perfil.php](login/perfil.php) | Mostra os dados da própria conta, sua data de criação e o aluno vinculado. Contas comuns também veem uma prévia de até três cursos. |
 | [recuperar_senha.php](login/recuperar_senha.php) | Inicia a demonstração local de recuperação para contas comuns e apresenta um link para continuar. Não envia e-mail. |
 | [redefinir_senha.php](login/redefinir_senha.php) | Valida a recuperação e recebe a nova senha com confirmação. Após salvar, o token deixa de valer. |
+| [verificar_cadastro_relatorio.php](database/verificar_cadastro_relatorio.php) | Testa cadastro vinculado, rollback, cursos, filtros e migration segura em tabelas temporárias. |
 | [verificar_user.php](login/verificar_user.php) | Protege páginas que exigem autenticação. Visitantes são redirecionados ao login. |
 | [verificar_admin.php](login/verificar_admin.php) | Exige autenticação e tipo `admin`. Contas sem essa permissão recebem acesso negado. |
 | [verificar_cpf.php](login/verificar_cpf.php) | Define uma função que remove a máscara do CPF e retorna os dígitos quando a validação é aprovada. Não é uma tela de formulário. |
@@ -113,14 +113,13 @@ As inscrições pertencem à **conta do usuário**, por isso não dependem de um
 | Arquivo | O que faz |
 | --- | --- |
 | [admin.php](app/admin.php) | Exibe totais de alunos, usuários, cursos e inscrições, com atalhos para a gestão. |
-| [select.php](app/select.php) | Apresenta o relatório de alunos com filtros por turma e situação, indicação de vínculo e botão para editar. |
+| [select.php](app/select.php) | Apresenta o relatório de alunos com filtros por cursos reais e situação, cursos agrupados e botão para editar. |
 | [select_w_w.php](app/select_w_w.php) | Busca um aluno por ID ou CPF e apresenta seus dados. A busca por CPF aceita registros com ou sem máscara. |
 | [update.php](app/update.php) | Busca e edita nome, turma, e-mail e situação do aluno. Preserva ID, CPF, nascimento e vínculo, com validação de sessão e CSRF. |
 | [delete.php](app/delete.php) | Busca um aluno e pede confirmação para excluir. Se houver inscrições, exige uma confirmação adicional. Preserva a conta e os cursos inscritos. |
 | [usuarios.php](app/usuarios.php) | Lista contas, tipos, datas de criação e alunos vinculados. Não exibe senhas nem oferece edição de contas. |
-| [vincular_conta.php](app/vincular_conta.php) | Confere ID do aluno e e-mail da conta antes de confirmar um vínculo único e permanente. |
 | [alunos_cursos.php](app/alunos_cursos.php) | Mostra os cursos dos alunos pelas contas vinculadas. Mantém na listagem alunos sem conta ou sem inscrições. |
-| [create.php](app/create.php) | Mantém o endereço antigo de cadastro como redirecionamento: administrador segue para vínculo e demais acessos para cadastro público. |
+| [create.php](app/create.php) | Mantém o endereço antigo de cadastro como redirecionamento: administrador segue para relatório e demais acessos para cadastro público. |
 
 ### Administração de cursos
 
@@ -160,6 +159,7 @@ Esses arquivos concentram recursos usados por várias páginas, evitando repetir
 | [adicionar_tipo_usuario.sql](database/adicionar_tipo_usuario.sql) | Adiciona o tipo de conta e as restrições para usuário e administrador em bancos existentes. |
 | [adicionar_created_at_usuarios.sql](database/adicionar_created_at_usuarios.sql) | Adiciona a data de criação das contas. Contas antigas recebem o horário da execução da migração. |
 | [vincular_alunos_usuarios.sql](database/vincular_alunos_usuarios.sql) | Adiciona o vínculo opcional entre aluno e conta, suas restrições e a proteção de ID, CPF, nascimento e vínculo já preenchido. |
+| [vincular_contas_existentes.sql](database/vincular_contas_existentes.sql) | Associa registros antigos somente por e-mail normalizado único e conta livre. |
 | [ajustar_senha.sql](database/ajustar_senha.sql) | Amplia a coluna de senha para armazenar hashes. Não transforma senhas antigas em hash. |
 | [adicionar_favoritos.sql](database/adicionar_favoritos.sql) | Cria a tabela `favoritos` em bancos existentes com ID, conta, curso e data. Impede duplicatas e limpa favoritos quando a conta ou o curso é excluído. A mesma estrutura está em `table.pgsql`. |
 | [reset_database.pgsql](database/auto_destruicao/reset_database.pgsql) | Apaga e recria as tabelas de alunos e usuários para reiniciar dados de desenvolvimento. |
@@ -172,6 +172,7 @@ Os arquivos abaixo são executados pelo **terminal** e usam tabelas temporárias
 
 | Arquivo | O que verifica |
 | --- | --- |
+| [verificar_cadastro_relatorio.php](database/verificar_cadastro_relatorio.php) | Testa cadastro vinculado, rollback, cursos, filtros e migration segura em tabelas temporárias. |
 | [verificar_user.php](database/verificar_user.php) | Cadastro e autenticação, hashes, e-mails duplicados e criação apenas de contas comuns pelo cadastro público. |
 | [verificar_alunos.php](database/verificar_alunos.php) | Edição de alunos, IDs maiores que 255, CSRF, conflito entre abas, identidade preservada, busca de CPF e entradas inválidas. |
 | [verificar_created_at.php](database/verificar_created_at.php) | Migração da data de criação, sua preservação no cadastro e recuperação e a formatação apresentada nas telas. |
@@ -210,7 +211,6 @@ Os documentos de requisitos e acompanhamento também contêm planos e informaç�
 1. **Estrutura:** leia este guia e o `README.md`.
 2. **Entrada no sistema:** acompanhe `login/login.php`, `includes/session.php` e os verificadores de acesso.
 3. **Cadastro:** siga `login/cadastrar.php` até as funções de cadastro em `includes/functions.php`.
-4. **Dados e vínculo:** observe `database/table.pgsql`, `app/vincular_conta.php` e `login/perfil.php`.
 5. **Cursos e administração:** compare `app/cursos.php`, `app/meus_cursos.php` e as páginas administrativas.
 
 ### Como os arquivos se conectam
@@ -218,7 +218,7 @@ Os documentos de requisitos e acompanhamento também contêm planos e informaç�
 ```text
 cadastro → validar dados → salvar conta e aluno juntos → login
 login → conferir senha → guardar sessao → dashboard ou painel
-vinculo administrativo → confirmar conta e aluno → mostrar dados no perfil
+cadastro → criar conta com returning id → criar aluno vinculado → inscricoes aparecem no relatorio
 inscricao → validar token e curso → salvar sem duplicar → meus cursos
 ```
 
@@ -229,3 +229,34 @@ inscricao → validar token e curso → salvar sem duplicar → meus cursos
 - Preserve tokens CSRF e confirmações antes de alterar ou excluir dados.
 - Considere que excluir um aluno preserva sua conta e inscrições; excluir um curso exige ausência de inscrições.
 - Mantenha cadastro de conta e aluno na mesma transação e preserve os campos imutáveis.
+
+## Cadastro automático e relatório de cursos
+
+O cadastro usa RETURNING id e salva alunos.usuario_id na mesma transação. O relatório mostra **Cursos**, com STRING_AGG e uma linha por aluno; sem inscrições mostra **Sem curso**. O filtro usa cursos cadastrados e EXISTS, mantendo visíveis todos os cursos do aluno encontrado. A coluna Conta e a etapa administrativa de vinculação foram removidas.
+
+Para registros antigos, [vincular_contas_existentes.sql](database/vincular_contas_existentes.sql) compara lower(trim(email)). Somente correspondências únicas nos dois lados e contas livres são preenchidas. Vínculos existentes, casos ambíguos e dados pessoais são preservados. Execute após a migration estrutural, se o banco for antigo:
+
+~~~sh
+psql -h HOST -U USUARIO -d BANCO -v ON_ERROR_STOP=1 -f impulsos_cursos/database/vincular_contas_existentes.sql
+php impulsos_cursos/database/verificar_cadastro_relatorio.php
+~~~
+
+## Histórico administrativo
+
+- `database/adicionar_logs_admin.sql` cria `logs_admin` em bancos existentes. Novas instalações já recebem a tabela por `table.pgsql`.
+- `registrarLogAdmin`, em `includes/functions.php`, usa o ID do admin da sessão e registra somente ações concluídas. Uma falha no log é tratada sem expor detalhes ou interromper a ação principal.
+- `app/logs_admin.php` exibe os últimos 100 registros, por data e ID decrescentes. Somente administradores veem a página e o link **Logs** no menu.
+
+| Ações registradas | Dados guardados |
+| --- | --- |
+| Criar, editar e excluir curso; editar e excluir aluno | ID do admin, ação, entidade, ID afetado, descrição curta e data/hora |
+
+Não são copiados CPF, senha, hash, tokens, cookies, dados do formulário ou a descrição completa do curso. Alunos são identificados pelo ID; cursos também podem aparecer pelo nome.
+
+Execute a migration na pasta pai do projeto, substituindo os parâmetros:
+
+~~~sh
+psql -h HOST -U USUARIO -d BANCO -v ON_ERROR_STOP=1 -f impulsos_cursos/database/adicionar_logs_admin.sql
+~~~
+
+`database/verificar_logs_admin.php` usa tabelas temporárias. Aceita os cenários `funcao`, `criar`, `criar_sem_log`, `editar`, `excluir`, `aluno_editar`, `aluno_excluir`, `csrf`, `bloqueado`, `usuario`, `visitante`, `vazio`, `lista` e `falha`. Exemplo: `php impulsos_cursos/database/verificar_logs_admin.php criar`.

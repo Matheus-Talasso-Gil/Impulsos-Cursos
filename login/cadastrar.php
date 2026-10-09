@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php include __DIR__ . '/../includes/header.php' ?>
     <main class="auth-page">
         <h1>Cadastre-se no Sistema</h1>
-        <p>Cadastre seus dados e sua conta. O administrador confirmará o vínculo ao seu cadastro de aluno.</p>
+        <p>Cadastre seus dados e sua conta. Seu cadastro de aluno será criado automaticamente com essa conta.</p>
         <?php if ($erro !== ''): ?>
             <p class="message-error" role="alert"><?= htmlspecialchars($erro, ENT_QUOTES, 'UTF-8') ?></p>
         <?php endif; ?>

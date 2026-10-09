@@ -77,3 +77,5 @@ O schema atual não possui `CHECK` para exigir `cursos.carga_horaria > 0`; essa 
 - **DEFAULT:** valor usado quando a coluna é omitida no cadastro; `alunos.ativo` usa `TRUE` e `usuarios.tipo` usa `usuario`.
 - **SERIAL:** inteiro com geração automática por uma sequence; não garante IDs consecutivos sem lacunas.
 - **Nulo:** ausência de valor no campo; não é o mesmo que texto vazio.
+
+O cadastro público preenche usuario_id automaticamente com RETURNING id. A migration [vincular_contas_existentes.sql](database/vincular_contas_existentes.sql) preenche somente correspondências únicas de e-mail normalizado, preservando vínculos e casos ambíguos. O relatório consulta cursos e inscricoes; turma continua sendo um campo legado separado.

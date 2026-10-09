@@ -1,4 +1,4 @@
-﻿# Diagramas do sistema
+# Diagramas do sistema
 
 Os arquivos do CRUD utilizam a tabela `alunos`.
 
@@ -45,13 +45,13 @@ erDiagram
 
 ### create.php
 
-É um redirecionamento: encaminha admin para vincular conta a aluno e as demais contas para Cadastre-se. Não oferece mais um formulário administrativo de cadastro de aluno. O cadastro público cria conta do tipo usuario e aluno na mesma transação, ainda sem vínculo; o admin confirma esse vínculo depois.
+É um redirecionamento: encaminha admin para o relatório e as demais contas para Cadastre-se. Não oferece mais um formulário administrativo de cadastro de aluno. O cadastro público cria conta do tipo usuario e aluno na mesma transação, já com usuario_id preenchido automaticamente.
 
 O campo `id` é gerado automaticamente pelo banco de dados.
 
 ### select.php
 
-Lista alunos por ID crescente, com filtros opcionais por turma e situação e ação Editar.
+Lista alunos por ID crescente, com filtros opcionais por curso e situação e ação Editar.
 
 ### select_w_w.php
 
@@ -92,7 +92,7 @@ flowchart TD
 
 ## Vínculo e perfil
 
-O admin informa o ID do aluno e o e-mail de uma conta real, confere os dados e confirma com token CSRF. O servidor usa os dados pendentes da sessão para criar o vínculo.
+O cadastro público obtém o ID da conta com RETURNING id e salva esse ID no aluno dentro da mesma transação. A migration de dados antigos usa correspondências únicas de e-mail normalizado.
 
 O perfil consulta o aluno por `$_SESSION['id']`. Sem vínculo, informa que a conta ainda não está vinculada a um cadastro de aluno. Cursos funcionam também para contas sem aluno.
 
@@ -198,7 +198,7 @@ flowchart TD
     Cadastro --> Validacao{"CSRF e dados válidos, CPF e e-mail disponíveis?"}
     Validacao -->|Não| ErroCadastro["Exibir erro e corrigir formulário"]
     ErroCadastro --> Cadastro
-    Validacao -->|Sim| Criar["Criar conta usuario e aluno sem vínculo em transação"]
+    Validacao -->|Sim| Criar["Criar conta com returning id e aluno vinculado em transação"]
     Criar --> Gravou{"Gravação concluída?"}
     Gravou -->|Não| Rollback["Desfazer transação e mostrar erro"]
     Rollback --> Cadastro
@@ -266,7 +266,6 @@ flowchart TD
     Painel --> Excluir["Buscar ID e excluir aluno com confirmação"]
     Painel --> AlunosCursos["Consultar cursos dos alunos pelas contas vinculadas"]
     Painel --> Contas["Consultar usuários, tipo, data de criação e vínculo"]
-    Painel --> Vincular["Vincular conta a aluno"]
     Painel --> Cursos["Gerenciar cursos"]
     Painel --> Catalogo["Todos os cursos"]
     Admin --> Perfil["Ver próprio perfil"]
@@ -307,23 +306,6 @@ flowchart TD
 ID, CPF, nascimento e vínculo já preenchido são protegidos. A validação dos campos da edição ocorre no formulário do navegador; o servidor recupera a identidade original e grava apenas os campos permitidos. A consulta individual não tem botões diretos de editar/excluir: a edição usa o relatório ou `update.php`, e a exclusão usa a busca de `delete.php`.
 
 O fluxo de exclusão de aluno foi preservado em **Exclusão com confirmação**: exige confirmação inicial e, se a conta vinculada tiver inscrições, uma segunda confirmação com a lista de cursos. Cancelar mantém o cadastro; excluir remove somente o aluno e seu vínculo, preservando conta e inscrições.
-
-### Vínculo de conta a aluno
-
-```mermaid
-flowchart TD
-    Admin["Admin"] --> Informar["Informar ID do aluno e e-mail da conta"]
-    Informar --> Disponivel{"CSRF válido e aluno e conta disponíveis sem vínculo?"}
-    Disponivel -->|Não| Erro["Mostrar mensagem e solicitar nova conferência"]
-    Erro --> Informar
-    Disponivel -->|Sim| Conferir["Mostrar aluno e conta e guardar dados pendentes na sessão"]
-    Conferir --> Decisao{"Confirmar vínculo?"}
-    Decisao -->|Não| Cancelar["Cancelar e limpar conferência"]
-    Decisao -->|Sim| Validar["Revalidar CSRF, dados pendentes e disponibilidade"]
-    Validar --> Salvar{"Atualização aceita pelo banco?"}
-    Salvar -->|Não| Erro
-    Salvar -->|Sim| Sucesso["Criar vínculo único e permanente e mostrar sucesso"]
-```
 
 ### Gestão administrativa de cursos
 
@@ -393,7 +375,6 @@ flowchart LR
         ExcluirAluno(["Excluir aluno com confirmações"])
         CursosAlunos(["Visualizar cursos dos alunos"])
         Contas(["Consultar usuários cadastrados"])
-        Vincular(["Vincular conta a aluno"])
         Gerenciar(["Gerenciar e listar cursos"])
         CriarCurso(["Cadastrar curso"])
         EditarCurso(["Editar curso"])
@@ -431,7 +412,6 @@ flowchart LR
     Admin --- ExcluirAluno
     Admin --- CursosAlunos
     Admin --- Contas
-    Admin --- Vincular
     Admin --- Gerenciar
     Admin --- CriarCurso
     Admin --- EditarCurso
@@ -444,6 +424,6 @@ flowchart LR
 
 - **Visitante:** pessoa sem autenticação, com acesso à página pública, login, cadastro e solicitação de recuperação local para uma conta comum.
 - **Usuário:** conta comum autenticada, com acesso aos cursos, inscrições, cancelamento e próprio perfil. Não gerencia alunos, contas, vínculos ou cursos administrativos.
-- **Admin:** conta administrativa responsável por consultas e gestão de alunos, vínculos e cursos, com acesso ao próprio perfil. Também pode usar as rotas de cursos da própria conta; não participa da recuperação de senha.
+- **Admin:** conta administrativa responsável por consultas e gestão de alunos e cursos, com acesso ao próprio perfil. Também pode usar as rotas de cursos da própria conta; não participa da recuperação de senha.
 
-Ver perfil e consultar dados próprios são aspectos da mesma página, não telas distintas. A criação de aluno ocorre no cadastro público, e a confirmação administrativa do vínculo é separada. A exclusão de aluno preserva a conta e suas inscrições; a exclusão de curso é bloqueada se houver inscrições.
+Ver perfil e consultar dados próprios são aspectos da mesma página, não telas distintas. A criação de aluno ocorre no cadastro público com vínculo automático na mesma transação. A exclusão de aluno preserva a conta e suas inscrições; a exclusão de curso é bloqueada se houver inscrições.

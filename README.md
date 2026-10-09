@@ -6,7 +6,7 @@ Sistema web fictício de gestão de alunos, desenvolvido com PHP, PDO e PostgreS
 
 - Cadastro público de conta e aluno em Cadastre-se; consulta, edição e exclusão administrativas
 - Pesquisa de aluno por ID ou CPF
-- Relatório com filtros por turma e situação
+- Relatório com filtros por curso e situação
 - Validação matemática dos dígitos verificadores do CPF
 - Cadastro e autenticação de usuários com senha protegida por hash
 - Menus e páginas controlados pelo papel da conta
@@ -232,7 +232,7 @@ impulsos_cursos/
 ├── app/
 │   ├── admin.php                 # área administrativa
 │   ├── alunos_cursos.php         # consulta dos cursos dos alunos
-│   ├── create.php                # redirecionamento para cadastro/vínculo
+│   ├── create.php                # redirecionamento para cadastro/relatório
 │   ├── curso.php                 # detalhes e inscrição em um curso
 │   ├── curso_create.php          # cadastro de cursos
 │   ├── curso_delete.php          # exclusão de cursos
@@ -245,8 +245,7 @@ impulsos_cursos/
 │   ├── select_w_w.php            # consulta individual
 │   ├── tabela.md                 # documentação relacionada às tabelas
 │   ├── update.php                # edição de alunos
-│   ├── usuarios.php              # consulta de usuários e seus vínculos
-│   └── vincular_conta.php        # vínculo entre conta e aluno
+│   └── usuarios.php              # consulta de usuários e seus vínculos
 │
 ├── css/
 │   └── style.css                 # estilos compartilhados do sistema
@@ -260,6 +259,8 @@ impulsos_cursos/
 │   ├── connect_postgres.php      # conexão com PostgreSQL
 │   ├── table.pgsql               # criação das tabelas
 │   ├── verificar_created_at.php  # teste isolado da data de criação das contas
+│   ├── vincular_contas_existentes.sql # associa emails antigos sem ambiguidades
+│   ├── verificar_cadastro_relatorio.php # regressao do cadastro e relatorio
 │   ├── vincular_alunos_usuarios.sql # migração do vínculo opcional
 │   └── verificar_user.php        # teste de cadastro e autenticação
 │
@@ -357,7 +358,7 @@ php impulsos_cursos/database/verificar_favoritos.php
 
 Substitua `HOST`, `USUARIO` e `BANCO` pelos valores da sua instalação. `table.pgsql` cria tabelas ausentes sem apagar dados e aplica a estrutura de vínculo entre alunos e usuários.
 
-Para atualizar um banco existente e permitir o acesso a **Meu perfil** e o vínculo de contas no painel administrativo, execute:
+Para atualizar um banco existente e preparar a relação usada no cadastro automático e em **Meu perfil**, execute:
 
 ```powershell
 psql -h HOST -U USUARIO -d BANCO -v ON_ERROR_STOP=1 -f impulsos_cursos/database/vincular_alunos_usuarios.sql
@@ -365,9 +366,9 @@ psql -h HOST -U USUARIO -d BANCO -v ON_ERROR_STOP=1 -f impulsos_cursos/database/
 
 Essa migração adiciona `alunos.usuario_id`, suas restrições e a proteção de identidade, sem apagar registros ou alterar IDs e sequences. Os alunos antigos ficam sem conta e continuam no relatório. A execução pode ser repetida sem duplicar a relação.
 
-No relatório, abra **Vincular conta a aluno**. Informe o ID do aluno e o e-mail de uma conta real existente, confira os dados e confirme. Cada aluno aceita somente uma conta e cada conta aceita somente um aluno. O vínculo não pode ser alterado enquanto o cadastro existir; ID, CPF e nascimento também são imutáveis.
+Novos cadastros preenchem automaticamente o vínculo único entre aluno e conta. ID, CPF, nascimento e vínculo preenchido continuam protegidos pelo banco.
 
-Em **Cadastre-se**, o próprio aluno informa nome, CPF, nascimento, e-mail e senha. Conta e aluno são gravados na mesma transação, com o aluno ativo, sem turma e ainda sem vínculo. O administrador define a turma na edição do aluno e confirma o vínculo usando o ID do aluno no relatório e o e-mail cadastrado. O painel e o menu administrativos não oferecem mais cadastro de aluno. Se CPF ou e-mail já estiverem cadastrados, o cadastro público é recusado, sem salvar registros parciais.
+Em **Cadastre-se**, conta e aluno são gravados na mesma transação. O INSERT da conta usa RETURNING id; esse ID é salvo em alunos.usuario_id. Falhas desfazem ambos os registros. O relatório reúne os cursos reais de inscricoes e cursos, sem copiar nomes para alunos.turma.
 
 A exclusão administrativa remove somente o cadastro de aluno e desfaz o vínculo por exclusão. A conta e suas inscrições são preservadas. Quando existem inscrições em cursos, uma segunda tela lista os cursos e exige confirmação adicional. Cancelar mantém o cadastro.
 
@@ -446,7 +447,7 @@ Após aplicar a migration de vínculo, confira também:
 
 1. Alunos antigos continuam no relatório com **Sem conta** e com os mesmos IDs, CPFs e nascimentos.
 2. O perfil de uma conta sem aluno informa ausência de vínculo.
-3. Como admin, confira e confirme um vínculo pelo relatório. O status passa a **Conta vinculada** e o perfil mostra o aluno correto.
+3. Cadastre uma conta pública e confira o aluno já associado; inscreva em dois cursos e veja ambos em uma única linha no relatório.
 4. Uma conta não pode ser vinculada a outro aluno e um aluno vinculado não pode receber outra conta.
 5. A edição permite nome, turma, e-mail e situação sem alterar ID, CPF, nascimento ou vínculo.
 6. Em um cadastro de teste com inscrições, a primeira confirmação de exclusão mostra os cursos. Cancelar mantém o aluno; confirmar novamente remove somente o cadastro e preserva a conta e as inscrições.
@@ -470,3 +471,14 @@ git push origin main
 ## Autor
 
 ### Matheus Gil
+
+## Cadastro automático e relatório de cursos
+
+O cadastro usa RETURNING id e salva alunos.usuario_id na mesma transação. O relatório mostra **Cursos**, com STRING_AGG e uma linha por aluno; sem inscrições mostra **Sem curso**. O filtro usa cursos cadastrados e EXISTS, mantendo visíveis todos os cursos do aluno encontrado. A coluna Conta e a etapa administrativa de vinculação foram removidas.
+
+Para registros antigos, [vincular_contas_existentes.sql](database/vincular_contas_existentes.sql) compara lower(trim(email)). Somente correspondências únicas nos dois lados e contas livres são preenchidas. Vínculos existentes, casos ambíguos e dados pessoais são preservados. Execute após a migration estrutural, se o banco for antigo:
+
+~~~sh
+psql -h HOST -U USUARIO -d BANCO -v ON_ERROR_STOP=1 -f impulsos_cursos/database/vincular_contas_existentes.sql
+php impulsos_cursos/database/verificar_cadastro_relatorio.php
+~~~

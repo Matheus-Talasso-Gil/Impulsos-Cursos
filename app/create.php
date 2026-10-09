@@ -1,8 +1,8 @@
 <?php
 require_once __DIR__ . '/../includes/session.php';
-// o cadastro passou para cadastre se o administrador confirma os vinculos
+// o cadastro publico cria conta e aluno juntos
 if (($_SESSION['tipo'] ?? '') === 'admin') {
-    $destino = '/impulsos_cursos/app/vincular_conta.php';
+    $destino = '/impulsos_cursos/app/select.php';
 } else {
     $destino = '/impulsos_cursos/login/cadastrar.php';
 }

@@ -45,26 +45,33 @@ function cadastrar($conexao, $nome, $turma, $nasc, $ativo, $email, $cpf)
         echo '<p class="message-error" role="alert">Não foi possível salvar o aluno. Tente novamente.</p>';
     }
 }
-function listarAlunos($conexao, $turma = '', $situacao = 'todas')
+function listarAlunos($conexao, $cursoId = '', $situacao = 'todas')
 {
-    $sql = "SELECT * FROM alunos";
+    // agrupa os cursos sem duplicar alunos e preserva quem nao possui inscricoes
+    $sql = "SELECT a.*, COALESCE((
+                SELECT STRING_AGG(c.nome, ', ' ORDER BY c.nome, c.id)
+                FROM inscricoes i JOIN cursos c ON c.id = i.curso_id
+                WHERE i.usuario_id = a.usuario_id
+            ), 'Sem curso') AS cursos
+            FROM alunos a";
     $filtros = [];
     $parametros = [];
-    if ($turma !== '') {
-        $filtros[] = 'turma = :turma';
-        $parametros[':turma'] = $turma;
+    if ($cursoId !== '') {
+        // filtra a inscricao sem esconder os demais cursos do aluno
+        $filtros[] = 'EXISTS (SELECT 1 FROM inscricoes filtro WHERE filtro.usuario_id = a.usuario_id AND filtro.curso_id = :curso_id)';
+        $parametros[':curso_id'] = $cursoId;
     }
     if ($situacao === 'ativo') {
-        $filtros[] = 'ativo = TRUE';
+        $filtros[] = 'a.ativo = TRUE';
     } elseif ($situacao === 'inativo') {
-        $filtros[] = 'ativo = FALSE';
+        $filtros[] = 'a.ativo = FALSE';
     }
     // combina os filtros para exigir todas as condicoes informadas
     // separa os valores externos do sql para impedir injecao
     if ($filtros) {
         $sql .= ' WHERE ' . implode(' AND ', $filtros);
     }
-    $sql .= ' ORDER BY id ASC';
+    $sql .= ' ORDER BY a.id ASC';
     $stmt = $conexao->prepare($sql);
     $stmt->execute($parametros);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -76,6 +83,7 @@ function apagar($conexao, $id)
         $stmt = $conexao->prepare($sql);
         $stmt->execute([':id' => $id]);
         if ($stmt->rowCount()) {
+            registrarLogAdmin($conexao, 'excluiu', 'aluno', $id, 'Excluiu o aluno ' . $id);
             echo '<p class="message-success" role="status">Registro deletado.</p>';
         } else {
             echo '<p class="message-error" role="alert">Aluno não encontrado.</p>';
@@ -118,6 +126,9 @@ function Atualizar($conexao, $id, $nome, $turma, $nasc, $ativo, $email, $cpf)
         $stmt->bindParam(":ativo", $ativo);
         $stmt->bindParam(":email", $email);
         $stmt->execute();
+        if ($stmt->rowCount()) {
+            registrarLogAdmin($conexao, 'editou', 'aluno', $id, 'Alterou os dados permitidos do aluno ' . $id);
+        }
         echo '<p class="message-success" role="status">ALUNO ATUALIZADO COM SUCESSO! VOLTE AO RELATÓRIO PARA CONFERIR.</p>';
     } catch (PDOException $e) {
         error_log($e->getMessage());
@@ -170,7 +181,7 @@ function cadastrar_aluno_usuario($conexao, array $dados)
     if (!$data || $data->format('Y-m-d') !== $nasc || $nasc > date('Y-m-d')) {
         throw new InvalidArgumentException('Informe uma data de nascimento válida.');
     }
-    // salva conta e aluno juntos deixando o vinculo para confirmacao do admin
+    // mantem conta e aluno dentro da mesma transacao
     $conexao->beginTransaction();
     try {
         $stmt = $conexao->prepare("SELECT id FROM alunos WHERE regexp_replace(cpf, '[^0-9]', '', 'g') = :cpf");
@@ -178,9 +189,10 @@ function cadastrar_aluno_usuario($conexao, array $dados)
         if ($stmt->fetchColumn() !== false) {
             throw new InvalidArgumentException('Este CPF já possui cadastro de aluno. Procure o administrador.');
         }
-        cadastrar_user($conexao, $email, $dados['senha'] ?? '');
-        $stmt = $conexao->prepare('INSERT INTO alunos (nome, cpf, nasc, turma, ativo, email) VALUES (:nome, :cpf, :nasc, :turma, TRUE, :email)');
-        $stmt->execute([':nome' => $nome, ':cpf' => $cpf, ':nasc' => $nasc, ':turma' => $turma, ':email' => $email]);
+        $usuarioId = cadastrar_user($conexao, $email, $dados['senha'] ?? '');
+        // salva o id da conta diretamente no cadastro do aluno
+        $stmt = $conexao->prepare('INSERT INTO alunos (nome, cpf, nasc, turma, ativo, email, usuario_id) VALUES (:nome, :cpf, :nasc, :turma, TRUE, :email, :usuario_id)');
+        $stmt->execute([':nome' => $nome, ':cpf' => $cpf, ':nasc' => $nasc, ':turma' => $turma, ':email' => $email, ':usuario_id' => $usuarioId]);
         // confirma o cadastro somente depois de salvar conta e aluno
         $conexao->commit();
     } catch (Throwable $e) {
@@ -209,11 +221,13 @@ function cadastrar_user($conexao, $email, $senha) // valida o email e cria uma c
     }
     // transforma a senha em hash antes de salvar no banco
     $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
-    $sql = "INSERT INTO usuarios (email, senha, tipo) VALUES (:email, :senha, 'usuario')"; // forca o cadastro publico a criar sempre uma conta comum
+    $sql = "INSERT INTO usuarios (email, senha, tipo) VALUES (:email, :senha, 'usuario') RETURNING id"; // forca o cadastro publico a criar sempre uma conta comum
     $stmt = $conexao->prepare($sql);
     $stmt->bindParam(":email", $email);
     $stmt->bindParam(":senha", $senhaHash);
     $stmt->execute();
+    // obtem o id criado pelo insert sem buscar novamente pelo email
+    return (int) $stmt->fetchColumn();
 }
 // usa a conta mais recente quando existem emails duplicados
 function consultar_user($conexao, $email)
@@ -361,4 +375,48 @@ function buscarFavoritosUsuario($conexao)
     $stmt = $conexao->prepare('SELECT c.id, c.nome, c.descricao, c.carga_horaria FROM favoritos f JOIN cursos c ON c.id = f.curso_id WHERE f.usuario_id = :usuario_id ORDER BY c.nome, c.id');
     $stmt->execute([':usuario_id' => (int) ($_SESSION['id'] ?? 0)]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function registrarLogAdmin($conexao, $acao, $entidade, $entidadeId, $descricao)
+{
+    // identifica o admin somente pela sessao atual
+    $adminId = filter_var($_SESSION['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 2147483647]]);
+    if (($_SESSION['tipo'] ?? '') !== 'admin' || $adminId === false) {
+        return false;
+    }
+    if (!in_array($acao, ['criou', 'editou', 'excluiu'], true) || !in_array($entidade, ['aluno', 'curso'], true)) {
+        return false;
+    }
+    $salvamento = false;
+    try {
+        // preserva a transacao principal se o postgres rejeitar o log
+        if ($conexao->inTransaction()) {
+            $conexao->exec('SAVEPOINT registro_log_admin');
+            $salvamento = true;
+        }
+        $stmt = $conexao->prepare('INSERT INTO logs_admin (admin_id, acao, entidade, entidade_id, descricao) VALUES (:admin_id, :acao, :entidade, :entidade_id, :descricao)');
+        $stmt->execute([
+            ':admin_id' => $adminId,
+            ':acao' => $acao,
+            ':entidade' => $entidade,
+            ':entidade_id' => $entidadeId,
+            ':descricao' => $descricao
+        ]);
+        if ($salvamento) {
+            $conexao->exec('RELEASE SAVEPOINT registro_log_admin');
+        }
+        return true;
+    } catch (PDOException $e) {
+        if ($salvamento) {
+            try {
+                $conexao->exec('ROLLBACK TO SAVEPOINT registro_log_admin');
+                $conexao->exec('RELEASE SAVEPOINT registro_log_admin');
+            } catch (PDOException $erro) {
+                error_log('Nao foi possivel recuperar o ponto de salvamento do historico administrativo');
+            }
+        }
+        // evita enviar dados do registro ou detalhes internos ao navegador
+        error_log('Nao foi possivel registrar o historico administrativo');
+        return false;
+    }
 }

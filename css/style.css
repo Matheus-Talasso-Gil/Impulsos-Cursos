@@ -172,6 +172,9 @@ form.danger-confirmation { border-color: #f0c5ca; }
 .profile-empty { padding: 20px; background: #f6f9fc; border: 1px dashed var(--border); border-radius: 10px; }
 .profile-empty h3 { margin-bottom: 8px; font-size: 16px; }
 .profile-empty p { margin: 0; color: var(--text-secondary); font-size: 14px; }
+.favorites-empty { max-width: 560px; margin: var(--space-6) auto; padding: clamp(20px, 5vw, 40px); text-align: center; overflow-wrap: anywhere; }
+.favorites-empty h2 { margin-bottom: var(--space-3); font-size: clamp(20px, 4vw, 24px); }
+.favorites-empty .report-link { max-width: 100%; justify-content: center; white-space: normal; }
 @media (max-width: 760px) {
     .profile-layout { grid-template-columns: 1fr; }
 }

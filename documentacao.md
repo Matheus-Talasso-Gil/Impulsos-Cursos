@@ -78,7 +78,7 @@ impulsos_cursos/
 ├── app/
 │   ├── admin.php                 # área administrativa
 │   ├── alunos_cursos.php         # consulta dos cursos dos alunos
-│   ├── create.php                # redirecionamento para cadastro/vínculo
+│   ├── create.php                # redirecionamento para cadastro/relatório
 │   ├── curso.php                 # detalhes e inscrição em um curso
 │   ├── curso_create.php          # cadastro de cursos
 │   ├── curso_delete.php          # exclusão de cursos
@@ -91,8 +91,7 @@ impulsos_cursos/
 │   ├── select_w_w.php            # consulta individual
 │   ├── tabela.md                 # documentação relacionada às tabelas
 │   ├── update.php                # edição de alunos
-│   ├── usuarios.php              # consulta de usuários e seus vínculos
-│   └── vincular_conta.php        # vínculo entre conta e aluno
+│   └── usuarios.php              # consulta de usuários e seus vínculos
 │
 ├── css/
 │   └── style.css                 # estilos compartilhados do sistema
@@ -106,6 +105,8 @@ impulsos_cursos/
 │   ├── connect_postgres.php      # conexão com PostgreSQL
 │   ├── table.pgsql               # criação das tabelas
 │   ├── verificar_created_at.php  # teste isolado da data de criação das contas
+│   ├── vincular_contas_existentes.sql # associa emails antigos sem ambiguidades
+│   ├── verificar_cadastro_relatorio.php # regressao do cadastro e relatorio
 │   ├── vincular_alunos_usuarios.sql # migração do vínculo opcional
 │   └── verificar_user.php        # teste de cadastro e autenticação
 │
@@ -205,7 +206,7 @@ Esse diagrama resume as operações protegidas. Algumas páginas carregam a cone
 | Arquivo | Funcionamento |
 | --- | --- |
 | `login.php` | Busca a conta pelo e-mail e verifica o hash com `password_verify()`. Renova o ID da sessão e guarda ID, e-mail e tipo da conta antes de redirecionar ao início. |
-| `cadastrar.php` | Cria uma conta comum com senha em hash e redireciona ao login. Não cria aluno nem realiza login automático. |
+| `cadastrar.php` | Cria uma conta comum com senha em hash e redireciona ao login. Cria também o aluno com usuario_id preenchido na mesma transação; não realiza login automático. |
 | `verificar_user.php` | Verifica a sessão. Se `$_SESSION['id']` não existir, redireciona para o login e encerra a execução com `exit()`. |
 | `verificar_admin.php` | Exige login e papel admin. Contas comuns recebem HTTP 403. |
 | `perfil.php` | Busca o aluno usando exclusivamente `$_SESSION['id']`. Exibe seus dados ou informa ausência de vínculo. Senha e CPF não são consultados nessa página. |
@@ -213,23 +214,15 @@ Esse diagrama resume as operações protegidas. Algumas páginas carregam a cone
 
 ### 4.5. Gestão de alunos
 
-Todas as páginas PHP da pasta `app/` exigem login. Gestão de alunos e vínculo exigem admin; cursos aceitam contas comuns e administradores.
+Todas as páginas PHP da pasta `app/` exigem login. Gestão de alunos exige admin; cursos aceitam contas comuns e administradores.
 
-#### `create.php` — Cadastro de aluno
+#### create.php — Compatibilidade
 
-Mostra nome, CPF, turma, e-mail, nascimento e situação ativa. O CPF é validado no servidor. A turma é escolhida em um `select`:
-
-| Valor enviado | Opção exibida |
-| --- | --- |
-| `INF-01` | INF-01 — Informática Básica |
-| `ING-01` | ING-01 — Inglês |
-| `ADM-01` | ADM-01 — Administração |
-
-Ao receber POST, a própria página prepara e executa um `INSERT INTO alunos`. Depois mostra “Aluno cadastrado com sucesso!”. Embora exista a função `cadastrar()`, esta página executa o cadastro diretamente.
+Redireciona administradores para o relatório e demais acessos para o cadastro público. Conta e aluno são criados por cadastrar_aluno_usuario na mesma transação.
 
 #### `select.php` — Relatório
 
-Chama `listarAlunos()` com filtros opcionais de turma e situação. Mostra ID, nome, CPF, nascimento, turma, e-mail, situação, conta e ações em ordem crescente de ID. Sem filtros, inclui todos os alunos, mesmo sem conta. A coluna Conta mostra “Conta vinculada” ou “Sem conta”; não consulta senhas.
+Chama listarAlunos com filtros de curso e situação. Mostra ID, nome, CPF, nascimento, cursos, e-mail, situação e ações em ordem de ID. STRING_AGG reúne as inscrições em uma única linha por aluno. Alunos sem conta ou sem inscrições aparecem como Sem curso.
 
 Cada botão Editar pertence a um formulário que envia o ID por POST para `update.php`. O ID vai em um campo `hidden`, que não aparece na tela.
 
@@ -259,9 +252,7 @@ Cancelar abre `delete.php` e limpa as confirmações pendentes. Se as inscriçõ
 
 É a página aberta pelo menu Consultar. Permite buscar por ID inteiro positivo até 2147483647 ou por CPF com ou sem pontuação, inclusive nos registros antigos. Reutiliza `read_w_w()` para mostrar o cadastro e oferece um link ao relatório.
 
-#### `vincular_conta.php` — Vínculo de conta
 
-Abra “Vincular conta a aluno” pelo relatório. Informe o ID de um aluno sem conta e o e-mail de uma conta real disponível. A página mostra aluno e conta para conferência e guarda os dados na sessão. A confirmação exige token CSRF e confere novamente a conta antes de preencher `usuario_id`. Não há vínculo automático por e-mail e cada lado aceita somente um vínculo.
 
 #### `cursos.php` — Inscrições
 
@@ -305,13 +296,13 @@ Arquivo: [includes/functions.php](includes/functions.php).
 
 | Função | O que faz |
 | --- | --- |
-| `cadastrar($conexao, $nome, $turma, $nasc, $ativo, $email, $cpf)` | Insere um aluno. A página atual executa seu próprio INSERT. |
-| `listarAlunos($conexao, $turma = '', $situacao = 'todas')` | Lista alunos em ordem de ID com filtros opcionais. |
+| `cadastrar($conexao, $nome, $turma, $nasc, $ativo, $email, $cpf)` | Insere um aluno. Função legada; o cadastro público utiliza cadastrar_aluno_usuario. |
+| `listarAlunos($conexao, $cursoId = '', $situacao = 'todas')` | Lista alunos em ordem de ID com filtros opcionais. |
 | `apagar($conexao, $id)` | Exclui somente o aluno e verifica as linhas afetadas. As confirmações ficam em `delete.php`. |
 | `Consultar($conexao, $id)` | Função disponível para buscar e exibir um aluno. |
 | `Atualizar($conexao, $id, $nome, $turma, $nasc, $ativo, $email, $cpf)` | Mantém a assinatura existente e grava somente nome, turma, situação e e-mail. |
 | `read_w_w($conexao, $id)` | Busca e exibe os dados do aluno e um link para voltar ao início. |
-| `cadastrar_user($conexao, $email, $senha)` | Valida e-mail e duplicatas e cria uma conta comum com senha em hash. |
+| `cadastrar_user($conexao, $email, $senha)` | Valida e-mail e duplicatas e cria uma conta comum com senha em hash e retorna o ID obtido por RETURNING id. |
 | `consultar_user($conexao, $email)` | Retorna ID, e-mail, hash e tipo para autenticação. |
 
 ---
@@ -342,7 +333,7 @@ No HTML, `label` identifica o campo; `input` recebe um valor; `select` apresenta
 
 ### 7.1. Do campo do formulário ao PHP
 
-Trecho do cadastro:
+Trecho da edição de aluno:
 
 ```html
 <label for="turma">Turma:</label>
@@ -449,7 +440,7 @@ Esse endereço é enviado ao navegador. `exit()` impede que o restante da págin
 | Confirmar a exclusão de um aluno de teste | Registro removido do relatório. |
 | Abrir gestão com conta comum | HTTP 403. |
 | Abrir perfil sem vínculo | Mensagem simples informando ausência de cadastro de aluno. |
-| Vincular conta pela administração | Conferência antes de salvar; relatório e perfil mostram o vínculo. |
+| Cadastro público | Conta e aluno associados automaticamente na mesma transação. |
 | Reutilizar conta já vinculada | Operação rejeitada sem substituir o vínculo existente. |
 | Conferir ID, CPF e nascimento após editar | Valores originais preservados. |
 | Inscrever uma conta sem aluno em um curso | Inscrição funciona e não cria aluno automaticamente. |
@@ -496,7 +487,7 @@ Este roteiro é uma orientação de teste, não um registro de testes executados
 - Novas senhas são gravadas com `password_hash()` e verificadas com `password_verify()`. Antes de usar, execute `database/ajustar_senha.sql` para ampliar o campo para `VARCHAR(255)`. Senhas antigas em texto precisam ser convertidas ou redefinidas; o login não aceita texto puro armazenado no banco.
 - A edição de aluno valida nome, turma, e-mail e situação no servidor. Os formulários de busca, edição e exclusão aceitam IDs positivos até 2147483647.
 - Para verificar as correções de edição, CSRF, abas diferentes, CPF com pontuação e entradas inválidas, execute `php impulsos_cursos/database/verificar_alunos.php` a partir da pasta pai do projeto. O teste usa tabelas temporárias e rollback, preservando os cadastros reais.
-- O cadastro usa uma lista de turmas, mas a edição ainda permite texto livre para turma.
+- O cadastro inicia o campo legado turma como Sem turma; esse campo não determina inscrições.
 - Cadastro, edição e exclusão de aluno, vínculo, inscrição em cursos, gestão de cursos e recuperação de senha possuem token CSRF. A edição também confere se o aluno do formulário continua sendo o selecionado na sessão, impedindo salvar em outro aluno ao alternar abas. A cobertura não inclui todos os formulários do sistema.
 - A atualização não confere as linhas afetadas antes de mostrar sucesso; exclusão e vínculo conferem.
 - Atualizar a página após um POST pode solicitar o reenvio do formulário, pois não há redirecionamento após todas as operações.
@@ -546,3 +537,14 @@ O token é gerado com `random_bytes()`, fica na sessão, dura 10 minutos e é re
 **Limitação:** como não há envio de e-mail ou verificação de identidade, o fluxo permite redefinir uma conta comum conhecendo seu e-mail. Por isso, ambas as páginas aceitam somente conexões de loopback (`127.0.0.1` ou `::1`), exibem aviso de demonstração e devem ser usadas com contas de teste. Não use esse mecanismo como recuperação pública em produção. Usuários já autenticados são encaminhados ao perfil sem destruir a sessão.
 
 Para testar no próprio computador: abra o site por `localhost`, saia da conta, clique em Esqueci minha senha, informe o e-mail de uma conta comum de teste, continue e confirme uma nova senha. Entre com a nova senha; a antiga deve falhar. Reabra o mesmo link para conferir que o token não pode ser reutilizado. E-mails inexistentes, administrativos e de funcionários não permitem troca.
+
+## Cadastro automático e relatório de cursos
+
+O cadastro usa RETURNING id e salva alunos.usuario_id na mesma transação. O relatório mostra **Cursos**, com STRING_AGG e uma linha por aluno; sem inscrições mostra **Sem curso**. O filtro usa cursos cadastrados e EXISTS, mantendo visíveis todos os cursos do aluno encontrado. A coluna Conta e a etapa administrativa de vinculação foram removidas.
+
+Para registros antigos, [vincular_contas_existentes.sql](database/vincular_contas_existentes.sql) compara lower(trim(email)). Somente correspondências únicas nos dois lados e contas livres são preenchidas. Vínculos existentes, casos ambíguos e dados pessoais são preservados. Execute após a migration estrutural, se o banco for antigo:
+
+~~~sh
+psql -h HOST -U USUARIO -d BANCO -v ON_ERROR_STOP=1 -f impulsos_cursos/database/vincular_contas_existentes.sql
+php impulsos_cursos/database/verificar_cadastro_relatorio.php
+~~~

@@ -55,7 +55,6 @@ try {
                 <a class="report-link" href="select.php">Relatório de alunos</a>
                 <a class="report-link" href="delete.php">Excluir aluno</a>
                 <a class="report-link" href="cursos.php">Todos os cursos</a>
-                <a class="report-link" href="vincular_conta.php">Vincular conta a aluno</a>
                 <a class="report-link" href="usuarios.php">Usuários cadastrados</a>
                 <a class="report-link" href="alunos_cursos.php">Cursos dos alunos</a>
                 <a class="report-link" href="cursos_admin.php">Gerenciar cursos</a>

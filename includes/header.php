@@ -32,10 +32,10 @@ if (!($headerSessaoSomenteLeitura ?? false)) {
                         <summary>Contas</summary>
                         <div class="nav-dropdown">
                             <a href="/impulsos_cursos/app/usuarios.php">Usuários cadastrados</a>
-                            <a href="/impulsos_cursos/app/vincular_conta.php">Vincular conta a aluno</a>
                         </div>
                     </details>
-                    <a href="/impulsos_cursos/app/cursos_admin.php">Gerenciar cursos</a>
+                    <a href="/impulsos_cursos/app/cursos_admin.php">Cursos</a>
+                    <a href="/impulsos_cursos/app/logs_admin.php">Logs</a>
                 </div>
             <?php else: ?>
                 <div class="nav-links">

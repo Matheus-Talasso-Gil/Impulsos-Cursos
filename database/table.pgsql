@@ -54,8 +54,19 @@ CREATE TABLE IF NOT EXISTS favoritos (
     CONSTRAINT favoritos_usuario_curso_unique UNIQUE (usuario_id, curso_id)
 );
 
+CREATE TABLE IF NOT EXISTS logs_admin (
+    id SERIAL PRIMARY KEY,
+    admin_id INTEGER NOT NULL REFERENCES usuarios(id),
+    acao VARCHAR(20) NOT NULL,
+    entidade VARCHAR(20) NOT NULL,
+    entidade_id INTEGER,
+    descricao TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 BEGIN;
 
+-- novos cadastros preenchem a conta automaticamente e registros antigos podem ficar sem conta
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS usuario_id INTEGER;
 
 DO $$

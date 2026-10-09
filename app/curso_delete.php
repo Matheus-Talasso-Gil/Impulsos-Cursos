@@ -19,6 +19,8 @@ try {
         if ((int) $curso['inscritos'] > 0) {
             throw new InvalidArgumentException('Este curso possui inscrições e não pode ser excluído.');
         }
+        // guarda o nome antes da exclusao para usar no historico
+        $nomeCurso = $curso['nome'];
         // revalida as inscricoes ao excluir para preservar cursos com alunos
         $stmt = $conexao->prepare('DELETE FROM cursos WHERE id = :id AND NOT EXISTS (SELECT 1 FROM inscricoes WHERE curso_id = :curso_id)');
         $stmt->execute([':id' => $id, ':curso_id' => $id]);
@@ -26,6 +28,7 @@ try {
             $curso = buscarCursoAdmin($conexao, $id);
             throw new InvalidArgumentException($curso ? 'Este curso possui inscrições e não pode ser excluído.' : 'Curso não encontrado.');
         }
+        registrarLogAdmin($conexao, 'excluiu', 'curso', $id, 'Excluiu o curso ' . $nomeCurso);
         header('Location: cursos_admin.php?excluido=1');
         exit();
     }

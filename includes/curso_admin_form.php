@@ -40,10 +40,13 @@ if ($podeEditar && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new InvalidArgumentException('Curso não encontrado.');
             }
             $mensagem = 'Curso atualizado com sucesso.';
+            registrarLogAdmin($conexao, 'editou', 'curso', $id, 'Editou o curso ' . $dados['nome']);
             $curso = $dados;
         } else {
-            $stmt = $conexao->prepare('INSERT INTO cursos (nome, descricao, carga_horaria) VALUES (:nome, :descricao, :carga_horaria)');
+            $stmt = $conexao->prepare('INSERT INTO cursos (nome, descricao, carga_horaria) VALUES (:nome, :descricao, :carga_horaria) RETURNING id');
             $stmt->execute($dados);
+            $cursoId = (int) $stmt->fetchColumn();
+            registrarLogAdmin($conexao, 'criou', 'curso', $cursoId, 'Criou o curso ' . $dados['nome']);
             // redirecionamento apos criar evita duplicacao ao atualizar a pagina
             header('Location: curso_create.php?sucesso=1');
             exit();

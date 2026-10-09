@@ -81,7 +81,7 @@ if (!$ehAdmin) {
             <?php endforeach; ?>
             </dl>
         <?php elseif (!$ehAdmin): ?>
-            <div class="profile-empty"><h3>Cadastro ainda não vinculado</h3><p>Sua conta ainda não está vinculada a um cadastro de aluno. Entre em contato com a administração para vincular seus dados.</p></div>
+            <div class="profile-empty"><h3>Cadastro de aluno não encontrado</h3><p>Não há cadastro de aluno associado à sua conta. Entre em contato com a administração para conferir os dados.</p></div>
         <?php else: ?>
             <div class="profile-empty"><p>Você está acessando com uma conta administrativa.</p></div>
         <?php endif; ?>
